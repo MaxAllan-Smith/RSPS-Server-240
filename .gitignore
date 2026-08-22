@@ -1,0 +1,18 @@
+# Runtime server data
+.data/
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# IntelliJ
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
