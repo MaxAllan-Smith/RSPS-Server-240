@@ -47,5 +47,9 @@ internal enum class GameframeTab(
     LOGOUT(
         slot = GameframeLayout.Slot.LOGOUT,
         interfaceId = GameframeLayout.Interface.LOGOUT
+    ),
+    SETTINGS(
+        slot = GameframeLayout.Slot.SETTINGS,
+        interfaceId = GameframeLayout.Interface.SETTINGS
     )
 }
