@@ -19,6 +19,13 @@ internal object GameframeLayout {
         const val EQUIPMENT: Int = 80
         const val PRAYER: Int = 81
         const val SPELLBOOK: Int = 82
+        const val FRIENDS_CHAT: Int = 83
+        const val FRIENDS_LIST: Int = 84
+        const val IGNORE_LIST: Int = 85
+        const val LOGOUT: Int = 86
+        const val SETTINGS: Int = 87
+        const val EMOTES: Int = 88
+        const val MUSIC: Int = 89
 
         const val CHATBOX: Int = 96
     }
@@ -31,12 +38,20 @@ internal object GameframeLayout {
         const val MINIMAP: Int = 160
         const val CHATBOX: Int = 162
 
+        // Side tabs and content.
         const val COMBAT: Int = 593
         const val SKILLS: Int = 320
         const val INVENTORY: Int = 149
         const val EQUIPMENT: Int = 387
         const val PRAYER: Int = 541
         const val SPELLBOOK: Int = 218
+        const val FRIENDS_CHAT: Int = 7
+        const val FRIENDS_LIST: Int = 429
+        const val IGNORE_LIST: Int = 432
+        const val LOGOUT: Int = 182
+        const val SETTINGS: Int = 116
+        const val EMOTES: Int = 216
+        const val MUSIC: Int = 239
 
         // Journal shell and content.
         const val JOURNAL: Int = 629

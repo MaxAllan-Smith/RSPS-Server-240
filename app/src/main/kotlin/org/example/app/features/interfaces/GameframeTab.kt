@@ -28,8 +28,20 @@ internal enum class GameframeTab(
         slot = GameframeLayout.Slot.PRAYER,
         interfaceId = GameframeLayout.Interface.PRAYER,
     ),
-    MAGIC(
+    SPELLBOOK(
         slot = GameframeLayout.Slot.SPELLBOOK,
         interfaceId = GameframeLayout.Interface.SPELLBOOK
+    ),
+    FRIENDS_CHAT(
+        slot = GameframeLayout.Slot.FRIENDS_CHAT,
+        interfaceId = GameframeLayout.Interface.FRIENDS_CHAT
+    ),
+    FRIENDS_LIST(
+        slot = GameframeLayout.Slot.FRIENDS_LIST,
+        interfaceId = GameframeLayout.Interface.FRIENDS_LIST
+    ),
+    IGNORE_LIST(
+        slot = GameframeLayout.Slot.IGNORE_LIST,
+        interfaceId = GameframeLayout.Interface.IGNORE_LIST
     )
 }
