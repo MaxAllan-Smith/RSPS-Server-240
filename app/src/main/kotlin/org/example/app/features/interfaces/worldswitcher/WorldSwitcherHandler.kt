@@ -18,28 +18,34 @@ internal class WorldSwitcherHandler(
             return
         }
 
-        val target =
-            when {
-                packet.interfaceId == GameframeLayout.Interface.LOGOUT &&
-                    packet.componentId == WORLD_SWITCHER_COMPONENT ->
-                    LogoutTabView.WORLD_SWITCHER
-
-                packet.interfaceId == GameframeLayout.Interface.WORLD_SWITCHER &&
-                    packet.componentId == CLOSE_COMPONENT ->
-                    LogoutTabView.LOGOUT
-
-                else ->
-                    return
+        when {
+            packet.interfaceId == GameframeLayout.Interface.LOGOUT &&
+                packet.componentId == WORLD_SWITCHER_COMPONENT -> {
+                gameframeService.selectLogoutView(
+                    player = player,
+                    view = LogoutTabView.WORLD_SWITCHER,
+                )
             }
 
-        gameframeService.selectLogoutView(
-            player = player,
-            view = target,
-        )
+            packet.interfaceId == GameframeLayout.Interface.WORLD_SWITCHER &&
+                packet.componentId == CLOSE_COMPONENT -> {
+                gameframeService.selectLogoutView(
+                    player = player,
+                    view = LogoutTabView.LOGOUT,
+                )
+            }
+
+            packet.interfaceId == GameframeLayout.Interface.WORLD_SWITCHER &&
+                packet.componentId == OPTIONS_COMPONENT -> {
+                gameframeService.openWorldSwitcherOptions(player)
+            }
+        }
     }
 
     private companion object {
         const val WORLD_SWITCHER_COMPONENT: Int = 3
+
+        const val OPTIONS_COMPONENT: Int = 4
         const val CLOSE_COMPONENT: Int = 5
     }
 }

@@ -38,6 +38,8 @@ internal object GameframeLayout {
 
     object Interface {
         const val WORLD_SWITCHER: Int = 69
+        const val WORLD_SWITCHER_OPTIONS: Int = 821
+
         const val MINIMAP: Int = 160
         const val CHATBOX: Int = 162
 

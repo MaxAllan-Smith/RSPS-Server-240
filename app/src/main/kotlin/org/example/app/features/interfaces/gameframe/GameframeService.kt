@@ -78,6 +78,22 @@ internal class GameframeService {
         )
     }
 
+    fun openWorldSwitcherOptions(player: Player) {
+        mount(
+            player = player,
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.MAIN_MODAL,
+            interfaceId = GameframeLayout.Interface.WORLD_SWITCHER_OPTIONS,
+            type = MODAL_TYPE,
+        )
+
+        println(
+            "[Interfaces] Opened world switcher options " +
+                "${GameframeLayout.Interface.WORLD_SWITCHER_OPTIONS} " +
+                "for '${player.username}'."
+        )
+    }
+
     private fun mountMinimap(
         player: Player,
         state: GameframeState,
@@ -206,13 +222,14 @@ internal class GameframeService {
         parentInterface: Int,
         slot: Int,
         interfaceId: Int,
+        type: Int = OVERLAY_TYPE,
     ) {
         player.session.queue(
             IfOpenSub(
                 destinationInterfaceId = parentInterface,
                 destinationComponentId = slot,
                 interfaceId = interfaceId,
-                type = OVERLAY_TYPE,
+                type = type,
             )
         )
     }
@@ -231,7 +248,9 @@ internal class GameframeService {
     }
 
     private companion object {
+        const val MODAL_TYPE: Int = 0
         const val OVERLAY_TYPE: Int = 1
+
         const val CHATBOX_UNLOCKED_VARBIT: Int = 8119
 
         const val JOURNAL_TAB_VARBIT: Int = 8168
