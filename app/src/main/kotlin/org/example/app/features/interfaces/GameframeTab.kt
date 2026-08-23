@@ -5,22 +5,27 @@ internal enum class GameframeTab(
     val interfaceId: Int,
 ) {
     COMBAT(
-        slot = 76,
-        interfaceId = 593,
+        slot = GameframeLayout.Slot.COMBAT,
+        interfaceId = GameframeLayout.Interface.COMBAT,
     ),
 
     SKILLS(
-        slot = 77,
-        interfaceId = 320,
+        slot = GameframeLayout.Slot.SKILLS,
+        interfaceId = GameframeLayout.Interface.SKILLS,
     ),
 
     INVENTORY(
-        slot = 79,
-        interfaceId = 149,
+        slot = GameframeLayout.Slot.INVENTORY,
+        interfaceId = GameframeLayout.Interface.INVENTORY,
     ),
 
     EQUIPMENT(
-        slot = 80,
-        interfaceId = 387,
+        slot = GameframeLayout.Slot.EQUIPMENT,
+        interfaceId = GameframeLayout.Interface.EQUIPMENT,
+    ),
+
+    PRAYER(
+        slot = GameframeLayout.Slot.PRAYER,
+        interfaceId = GameframeLayout.Interface.PRAYER,
     ),
 }
