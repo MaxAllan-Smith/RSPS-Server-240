@@ -13,6 +13,7 @@ internal object GameframeLayout {
     }
 
     object Slot {
+        const val MINIMAP_ORBS = 33
         const val CHATBOX: Int = 96
         const val SIDEBAR: Int = 97
     }
