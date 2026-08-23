@@ -27,6 +27,8 @@ class Player(
     private val disconnected =
         AtomicBoolean(false)
 
+    private var disconnectHandler: ((String) -> Unit)? = null
+
     val featureState =
         FeatureStateStore()
 
@@ -35,6 +37,25 @@ class Player(
             player = this,
             definitions = varbitDefinitions,
         )
+
+    internal fun setDisconnectHandler(
+        handler: (String) -> Unit,
+    ) {
+        check(disconnectHandler == null) {
+            "Disconnect handler already registered for '$username'."
+        }
+
+        disconnectHandler = handler
+    }
+
+    fun disconnect(reason: String) {
+        val handler =
+            checkNotNull(disconnectHandler) {
+                "Disconnect handler not registered for '$username'."
+            }
+
+        handler(reason)
+    }
 
     fun markDisconnected(): Boolean {
         return disconnected.compareAndSet(

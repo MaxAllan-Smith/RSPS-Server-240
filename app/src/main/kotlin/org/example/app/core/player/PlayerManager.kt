@@ -12,13 +12,17 @@ class PlayerManager(
     private val networkService: NetworkService<Player>,
     private val repository: PlayerRepository = PlayerRepository(),
 ) {
-    private val disconnectedPlayers = ConcurrentLinkedQueue<Player>()
+    private val disconnectedPlayers =
+        ConcurrentLinkedQueue<Player>()
 
-    fun nextFreeIndex(): Int? = repository.nextFreeIndex()
+    fun nextFreeIndex(): Int? =
+        repository.nextFreeIndex()
 
-    fun isOnline(username: String): Boolean = repository.isOnline(username)
+    fun isOnline(username: String): Boolean =
+        repository.isOnline(username)
 
-    fun snapshot(): List<Player> = repository.snapshot()
+    fun snapshot(): List<Player> =
+        repository.snapshot()
 
     val size: Int
         get() = repository.size
@@ -29,6 +33,13 @@ class PlayerManager(
      * the player could be published.
      */
     fun add(player: Player): Boolean {
+        player.setDisconnectHandler { reason ->
+            disconnect(
+                player = player,
+                reason = reason,
+            )
+        }
+
         player.session.setDisconnectionHook {
             if (player.markDisconnected()) {
                 disconnectedPlayers.offer(player)
@@ -53,13 +64,16 @@ class PlayerManager(
         }
 
         println("[Logout] ${player.username}: $reason")
+
         player.session.requestClose()
         disconnectedPlayers.offer(player)
     }
 
     fun processDisconnections() {
         while (true) {
-            val player = disconnectedPlayers.poll() ?: break
+            val player =
+                disconnectedPlayers.poll()
+                    ?: break
 
             if (!repository.remove(player)) {
                 continue
