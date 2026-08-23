@@ -9,6 +9,7 @@ internal object GameframeLayout {
     }
 
     object Slot {
+        const val XP_DROPS: Int = 9
         const val MAIN_MODAL: Int = 16
         const val FLOATER: Int = 18
         const val MINIMAP_ORBS: Int = 33
@@ -38,10 +39,10 @@ internal object GameframeLayout {
 
     object Interface {
         const val WORLD_SWITCHER: Int = 69
-        const val WORLD_SWITCHER_OPTIONS: Int = 821
-
+        const val XP_DROPS: Int = 122
         const val MINIMAP: Int = 160
         const val CHATBOX: Int = 162
+        const val WORLD_SWITCHER_OPTIONS: Int = 821
 
         // Side tabs and content.
         const val COMBAT: Int = 593

@@ -13,6 +13,7 @@ internal class GameframeService {
 
         val state = player.gameframeState
 
+        mountXpDrops(player, state)
         mountMinimap(player, state)
         mountGameframeTabs(player, state)
         mountJournal(player, state)
@@ -91,6 +92,30 @@ internal class GameframeService {
             "[Interfaces] Opened world switcher options " +
                 "${GameframeLayout.Interface.WORLD_SWITCHER_OPTIONS} " +
                 "for '${player.username}'."
+        )
+    }
+
+    private fun mountXpDrops(
+        player: Player,
+        state: GameframeState,
+    ) {
+        if (state.xpDropsMounted) return
+
+        mount(
+            player = player,
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.XP_DROPS,
+            interfaceId = GameframeLayout.Interface.XP_DROPS,
+        )
+
+        state.xpDropsMounted = true
+
+        logMounted(
+            player = player,
+            name = "xp drops",
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.XP_DROPS,
+            interfaceId = GameframeLayout.Interface.XP_DROPS,
         )
     }
 
