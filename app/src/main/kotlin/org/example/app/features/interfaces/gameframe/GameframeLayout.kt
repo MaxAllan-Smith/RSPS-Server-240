@@ -10,6 +10,7 @@ internal object GameframeLayout {
 
     object Slot {
         const val MAIN_MODAL: Int = 16
+        const val FLOATER: Int = 18
         const val MINIMAP_ORBS: Int = 33
 
         // SIDE0..SIDE13

@@ -1,42 +1,45 @@
 package org.example.app.features.interfaces.worldswitcher
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
-import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import org.example.app.core.player.Player
 import org.example.app.features.interfaces.gameframe.GameframeLayout
+import org.example.app.features.interfaces.gameframe.GameframeService
+import org.example.app.features.interfaces.logout.LogoutTabView
 
-internal class WorldSwitcherHandler {
+internal class WorldSwitcherHandler(
+    private val gameframeService: GameframeService,
+) {
 
     fun handle(
         player: Player,
         packet: If3Button,
     ) {
-        if (packet.interfaceId != GameframeLayout.Interface.LOGOUT) {
+        if (packet.op != 1) {
             return
         }
 
-        if (packet.componentId != WORLD_SWITCHER_COMPONENT || packet.op != 1) {
-            return
-        }
+        val target =
+            when {
+                packet.interfaceId == GameframeLayout.Interface.LOGOUT &&
+                    packet.componentId == WORLD_SWITCHER_COMPONENT ->
+                    LogoutTabView.WORLD_SWITCHER
 
-        player.session.queue(
-            IfOpenSub(
-                destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                destinationComponentId = GameframeLayout.Slot.MAIN_MODAL,
-                interfaceId = GameframeLayout.Interface.WORLD_SWITCHER,
-                type = MODAL_TYPE,
-            )
-        )
+                packet.interfaceId == GameframeLayout.Interface.WORLD_SWITCHER &&
+                    packet.componentId == CLOSE_COMPONENT ->
+                    LogoutTabView.LOGOUT
 
-        println(
-            "[Interfaces] Opened world switcher " +
-                "${GameframeLayout.Interface.WORLD_SWITCHER} " +
-                "for '${player.username}'."
+                else ->
+                    return
+            }
+
+        gameframeService.selectLogoutView(
+            player = player,
+            view = target,
         )
     }
 
     private companion object {
         const val WORLD_SWITCHER_COMPONENT: Int = 3
-        const val MODAL_TYPE: Int = 0
+        const val CLOSE_COMPONENT: Int = 5
     }
 }

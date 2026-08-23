@@ -3,6 +3,7 @@ package org.example.app.features.interfaces.gameframe
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import org.example.app.core.player.Player
 import org.example.app.features.interfaces.journal.JournalTab
+import org.example.app.features.interfaces.logout.LogoutTabView
 import org.example.app.features.interfaces.social.SocialView
 
 internal class GameframeService {
@@ -54,6 +55,24 @@ internal class GameframeService {
 
         println(
             "[Interfaces] Selected social view " +
+                "${view.name.lowercase()} (${view.interfaceId}) " +
+                "for '${player.username}'."
+        )
+    }
+
+    fun selectLogoutView(
+        player: Player,
+        view: LogoutTabView,
+    ) {
+        mount(
+            player = player,
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.LOGOUT,
+            interfaceId = view.interfaceId,
+        )
+
+        println(
+            "[Interfaces] Selected logout view " +
                 "${view.name.lowercase()} (${view.interfaceId}) " +
                 "for '${player.username}'."
         )

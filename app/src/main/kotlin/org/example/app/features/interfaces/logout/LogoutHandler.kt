@@ -11,11 +11,11 @@ internal class LogoutHandler {
         player: Player,
         packet: If3Button,
     ) {
-        if (packet.interfaceId != GameframeLayout.Interface.LOGOUT) {
+        if (packet.op != 1) {
             return
         }
 
-        if (packet.componentId != LOGOUT_COMPONENT || packet.op != 1) {
+        if (!isLogoutButton(packet)) {
             return
         }
 
@@ -27,7 +27,20 @@ internal class LogoutHandler {
         )
     }
 
+    private fun isLogoutButton(packet: If3Button): Boolean =
+        when (packet.interfaceId) {
+            GameframeLayout.Interface.LOGOUT ->
+                packet.componentId == LOGOUT_COMPONENT
+
+            GameframeLayout.Interface.WORLD_SWITCHER ->
+                packet.componentId == WORLD_SWITCHER_LOGOUT_COMPONENT
+
+            else ->
+                false
+        }
+
     private companion object {
         const val LOGOUT_COMPONENT: Int = 8
+        const val WORLD_SWITCHER_LOGOUT_COMPONENT: Int = 25
     }
 }

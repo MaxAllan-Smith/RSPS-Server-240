@@ -28,7 +28,9 @@ internal class InterfaceFeature(
         LogoutHandler()
 
     private val worldSwitcherHandler =
-        WorldSwitcherHandler()
+        WorldSwitcherHandler(
+            gameframeService = gameframeService,
+        )
 
     override val id: String =
         "interfaces"
