@@ -6,12 +6,34 @@
 build/
 **/build/
 
-# IntelliJ
+# Compiled output
+bin/
+**/bin/
+out/
+**/out/
+
+# Kotlin
+.kotlin/
+
+# Logs and JVM crash files
+*.log
+hs_err_pid*
+replay_pid*
+
+# IntelliJ IDEA
 .idea/
 *.iml
 
 # VS Code
 .vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Local environment
+local.properties
 
 # OS files
 .DS_Store
