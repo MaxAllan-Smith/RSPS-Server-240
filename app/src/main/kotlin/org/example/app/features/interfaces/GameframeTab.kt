@@ -51,5 +51,9 @@ internal enum class GameframeTab(
     SETTINGS(
         slot = GameframeLayout.Slot.SETTINGS,
         interfaceId = GameframeLayout.Interface.SETTINGS
+    ),
+    EMOTES(
+        slot = GameframeLayout.Slot.EMOTES,
+        interfaceId = GameframeLayout.Interface.EMOTES
     )
 }
