@@ -3,6 +3,9 @@ package org.example.app.features.interfaces
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.features.interfaces.gameframe.GameframeService
+import org.example.app.features.interfaces.journal.JournalTabHandler
+import org.example.app.features.interfaces.social.SocialTabHandler
 
 internal class InterfaceFeature(
     private val gameframeService: GameframeService =

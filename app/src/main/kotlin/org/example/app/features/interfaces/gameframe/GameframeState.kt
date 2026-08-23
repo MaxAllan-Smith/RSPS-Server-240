@@ -1,4 +1,4 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.gameframe
 
 import org.example.app.core.player.Player
 

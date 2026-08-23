@@ -1,4 +1,6 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.social
+
+import org.example.app.features.interfaces.gameframe.GameframeLayout
 
 internal enum class SocialView(
     val interfaceId: Int,

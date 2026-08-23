@@ -1,7 +1,9 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.gameframe
 
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import org.example.app.core.player.Player
+import org.example.app.features.interfaces.journal.JournalTab
+import org.example.app.features.interfaces.social.SocialView
 
 internal class GameframeService {
 

@@ -1,4 +1,4 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.gameframe
 
 // Revision-240 resizable gameframe layout.
 // Keep interface and component IDs centralized here.

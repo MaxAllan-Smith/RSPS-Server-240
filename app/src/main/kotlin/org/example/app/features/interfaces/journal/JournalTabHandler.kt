@@ -1,7 +1,9 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.journal
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.player.Player
+import org.example.app.features.interfaces.gameframe.GameframeLayout
+import org.example.app.features.interfaces.gameframe.GameframeService
 
 internal class JournalTabHandler(
     private val gameframeService: GameframeService,

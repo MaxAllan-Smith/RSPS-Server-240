@@ -1,4 +1,6 @@
-package org.example.app.features.interfaces
+package org.example.app.features.interfaces.journal
+
+import org.example.app.features.interfaces.gameframe.GameframeLayout
 
 internal enum class JournalTab(
     val componentId: Int,
