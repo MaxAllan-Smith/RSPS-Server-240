@@ -1,11 +1,7 @@
 package org.example.app.features.interfaces
 
-/**
- * Interface layout used by the revision-240 resizable gameframe.
- *
- * Keep protocol/cache-specific interface and component IDs here rather than
- * scattering raw integers throughout interface handlers.
- */
+// Revision-240 resizable gameframe layout.
+// Keep interface and component IDs centralized here.
 internal object GameframeLayout {
 
     object TopLevel {
@@ -13,14 +9,24 @@ internal object GameframeLayout {
     }
 
     object Slot {
-        const val MINIMAP_ORBS = 33
+        // 161:33 -> minimap/orbs
+        const val MINIMAP_ORBS: Int = 33
+
+        // SIDE1
+        // 161:77 -> skills
+        const val SKILLS: Int = 77
+
+        // SIDE3
+        // 161:79 -> inventory
+        const val INVENTORY: Int = 79
+
+        // 161:96 -> chatbox
         const val CHATBOX: Int = 96
-        const val SIDEBAR: Int = 97
     }
 
     object Interface {
-        const val CHATBOX: Int = 162
         const val MINIMAP: Int = 160
+        const val CHATBOX: Int = 162
 
         const val COMBAT: Int = 593
         const val SKILLS: Int = 320

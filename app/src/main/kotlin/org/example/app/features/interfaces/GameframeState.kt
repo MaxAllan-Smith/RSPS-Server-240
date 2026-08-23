@@ -4,6 +4,8 @@ import org.example.app.core.player.Player
 
 internal class GameframeState(
     var minimapMounted: Boolean = false,
+    var skillsMounted: Boolean = false,
+    var inventoryMounted: Boolean = false,
     var chatboxMounted: Boolean = false,
 )
 
