@@ -18,7 +18,7 @@ internal object GameframeLayout {
         // SIDE1
         const val SKILLS: Int = 77
 
-        // SIDE2 - shared journal slot
+        // SIDE2
         const val JOURNAL: Int = 78
 
         // SIDE3
@@ -28,14 +28,26 @@ internal object GameframeLayout {
         const val CHATBOX: Int = 96
     }
 
+    object JournalSlot {
+        // 629:43 -> currently selected journal content
+        const val CONTENT: Int = 43
+    }
+
     object Interface {
         const val MINIMAP: Int = 160
         const val CHATBOX: Int = 162
 
         const val COMBAT: Int = 593
         const val SKILLS: Int = 320
-        const val QUEST_LIST: Int = 399
         const val INVENTORY: Int = 149
+
+        // Journal shell and subinterfaces.
+        const val JOURNAL: Int = 629
+        const val CHARACTER_SUMMARY: Int = 712
+        const val QUEST_LIST: Int = 399
+        const val ACHIEVEMENT_DIARIES: Int = 259
+        const val ADVENTURE_LOG: Int = 187
+
         const val EQUIPMENT: Int = 387
         const val PRAYER: Int = 541
         const val SPELLBOOK: Int = 218
