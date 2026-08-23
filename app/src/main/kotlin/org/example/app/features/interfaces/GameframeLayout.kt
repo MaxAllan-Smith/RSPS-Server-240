@@ -21,7 +21,7 @@ internal object GameframeLayout {
         const val SPELLBOOK: Int = 82
         const val FRIENDS_CHAT: Int = 83
         const val FRIENDS_LIST: Int = 84
-        const val IGNORE_LIST: Int = 85
+        const val ACCOUNT_MANAGEMENT: Int = 85
         const val LOGOUT: Int = 86
         const val SETTINGS: Int = 87
         const val EMOTES: Int = 88
@@ -47,7 +47,7 @@ internal object GameframeLayout {
         const val SPELLBOOK: Int = 218
         const val FRIENDS_CHAT: Int = 7
         const val FRIENDS_LIST: Int = 429
-        const val IGNORE_LIST: Int = 432
+        const val ACCOUNT_MANAGEMENT: Int = 432
         const val LOGOUT: Int = 182
         const val SETTINGS: Int = 116
         const val EMOTES: Int = 216

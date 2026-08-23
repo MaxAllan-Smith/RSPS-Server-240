@@ -40,9 +40,9 @@ internal enum class GameframeTab(
         slot = GameframeLayout.Slot.FRIENDS_LIST,
         interfaceId = GameframeLayout.Interface.FRIENDS_LIST
     ),
-    IGNORE_LIST(
-        slot = GameframeLayout.Slot.IGNORE_LIST,
-        interfaceId = GameframeLayout.Interface.IGNORE_LIST
+    ACCOUNT_MANAGEMENT(
+        slot = GameframeLayout.Slot.ACCOUNT_MANAGEMENT,
+        interfaceId = GameframeLayout.Interface.ACCOUNT_MANAGEMENT
     ),
     LOGOUT(
         slot = GameframeLayout.Slot.LOGOUT,
