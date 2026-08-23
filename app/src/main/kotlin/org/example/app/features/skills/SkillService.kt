@@ -11,13 +11,9 @@ internal class SkillService {
         if (state.initialSyncSent) return
 
         for (skill in Skill.entries) {
-            player.session.queue(
-                UpdateStatV2(
-                    skill.id,
-                    player.skills.currentLevel(skill),
-                    player.skills.baseLevel(skill),
-                    player.skills.experience(skill),
-                )
+            sync(
+                player = player,
+                skill = skill,
             )
         }
 
@@ -26,6 +22,36 @@ internal class SkillService {
         println(
             "[Skills] Synchronized ${Skill.entries.size} skills " +
                 "for '${player.username}'."
+        )
+    }
+
+    fun addExperience(
+        player: Player,
+        skill: Skill,
+        amount: Int,
+    ) {
+        player.skills.addExperience(
+            skill = skill,
+            amount = amount,
+        )
+
+        sync(
+            player = player,
+            skill = skill,
+        )
+    }
+
+    private fun sync(
+        player: Player,
+        skill: Skill,
+    ) {
+        player.session.queue(
+            UpdateStatV2(
+                skill.id,
+                player.skills.currentLevel(skill),
+                player.skills.baseLevel(skill),
+                player.skills.experience(skill),
+            )
         )
     }
 }
