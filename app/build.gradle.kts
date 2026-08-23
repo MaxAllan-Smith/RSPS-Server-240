@@ -1,7 +1,9 @@
 import org.gradle.api.tasks.JavaExec
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("buildlogic.kotlin-application-conventions")
+    application
+    kotlin("jvm") version "2.4.10"
 }
 
 repositories {
@@ -28,33 +30,52 @@ dependencies {
     runtimeOnly(
         "ch.qos.logback:logback-classic:1.5.18"
     )
+
+    testImplementation(
+        kotlin("test")
+    )
+}
+
+/*
+ * Use JDK 26 for both Java and Kotlin compilation.
+ */
+kotlin {
+    jvmToolchain(26)
+
+    compilerOptions {
+        jvmTarget.set(
+            JvmTarget.JVM_26
+        )
+    }
 }
 
 application {
-    mainClass = "org.example.app.AppKt"
+    mainClass.set(
+        "org.example.app.AppKt"
+    )
 
-    /*
-     * JDK 26 warns when JNR/JFFI attempts to load OpenRS2's
-     * optional native bzip2 implementation.
-     *
-     * Allow unnamed modules to use native access.
-     */
     applicationDefaultJvmArgs =
         listOf(
             "--enable-native-access=ALL-UNNAMED",
+            "--sun-misc-unsafe-memory-access=allow",
         )
 }
 
 /*
- * Gradle's application plugin normally executes :app:run with
- * app/ as the working directory.
+ * Run from the repository root rather than app/.
  *
- * Force the repository root instead so:
+ * This means runtime data such as:
  *
  *     .data/
  *
- * lives beside gradlew rather than underneath app/.
+ * is created alongside gradlew.
  */
 tasks.named<JavaExec>("run") {
-    workingDir(rootProject.projectDir)
+    workingDir(
+        rootProject.projectDir
+    )
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
