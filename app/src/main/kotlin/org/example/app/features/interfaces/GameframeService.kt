@@ -49,6 +49,24 @@ internal class GameframeService {
         )
     }
 
+    fun selectSocialView(
+        player: Player,
+        view: SocialView,
+    ) {
+        mount(
+            player = player,
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.FRIENDS_LIST,
+            interfaceId = view.interfaceId,
+        )
+
+        println(
+            "[Interfaces] Selected social view " +
+                "${view.name.lowercase()} (${view.interfaceId}) " +
+                "for '${player.username}'."
+        )
+    }
+
     private fun mountMinimap(
         player: Player,
         state: GameframeState,
@@ -63,7 +81,14 @@ internal class GameframeService {
         )
 
         state.minimapMounted = true
-        logMounted(player, "minimap/orbs", 161, 33, 160)
+
+        logMounted(
+            player = player,
+            name = "minimap/orbs",
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.MINIMAP_ORBS,
+            interfaceId = GameframeLayout.Interface.MINIMAP,
+        )
     }
 
     private fun mountGameframeTabs(
@@ -114,8 +139,21 @@ internal class GameframeService {
 
         state.journalMounted = true
 
-        logMounted(player, "journal", 161, 78, 629)
-        logMounted(player, "quest list", 629, 43, 399)
+        logMounted(
+            player = player,
+            name = "journal",
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.JOURNAL,
+            interfaceId = GameframeLayout.Interface.JOURNAL,
+        )
+
+        logMounted(
+            player = player,
+            name = "quest list",
+            parentInterface = GameframeLayout.Interface.JOURNAL,
+            slot = GameframeLayout.JournalSlot.CONTENT,
+            interfaceId = GameframeLayout.Interface.QUEST_LIST,
+        )
     }
 
     private fun mountChatbox(
@@ -132,7 +170,14 @@ internal class GameframeService {
         )
 
         state.chatboxMounted = true
-        logMounted(player, "chatbox", 161, 96, 162)
+
+        logMounted(
+            player = player,
+            name = "chatbox",
+            parentInterface = GameframeLayout.TopLevel.RESIZABLE,
+            slot = GameframeLayout.Slot.CHATBOX,
+            interfaceId = GameframeLayout.Interface.CHATBOX,
+        )
     }
 
     private fun mount(

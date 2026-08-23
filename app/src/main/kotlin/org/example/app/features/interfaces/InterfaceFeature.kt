@@ -14,6 +14,11 @@ internal class InterfaceFeature(
             gameframeService = gameframeService,
         )
 
+    private val socialTabHandler =
+        SocialTabHandler(
+            gameframeService = gameframeService,
+        )
+
     override val id: String =
         "interfaces"
 
@@ -23,6 +28,11 @@ internal class InterfaceFeature(
         registrar.packets {
             addListener<If3Button> { packet ->
                 journalTabHandler.handle(
+                    player = this,
+                    packet = packet,
+                )
+
+                socialTabHandler.handle(
                     player = this,
                     packet = packet,
                 )
