@@ -5,6 +5,7 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.features.interfaces.gameframe.GameframeService
 import org.example.app.features.interfaces.journal.JournalTabHandler
+import org.example.app.features.interfaces.logout.LogoutHandler
 import org.example.app.features.interfaces.social.SocialTabHandler
 
 internal class InterfaceFeature(
@@ -12,18 +13,17 @@ internal class InterfaceFeature(
         GameframeService(),
 ) : Feature {
 
-    private val journalTabHandler =
-        JournalTabHandler(
-            gameframeService = gameframeService,
-        )
+    private val journalTabHandler = JournalTabHandler(
+        gameframeService = gameframeService,
+    )
 
-    private val socialTabHandler =
-        SocialTabHandler(
-            gameframeService = gameframeService,
-        )
+    private val socialTabHandler = SocialTabHandler(
+        gameframeService = gameframeService,
+    )
 
-    override val id: String =
-        "interfaces"
+    private val logoutHandler = LogoutHandler()
+
+    override val id: String = "interfaces"
 
     override fun install(
         registrar: FeatureRegistrar,
@@ -38,6 +38,11 @@ internal class InterfaceFeature(
                 socialTabHandler.handle(
                     player = this,
                     packet = packet,
+                )
+
+                logoutHandler.handle(
+                    player = this,
+                    packet = packet
                 )
             }
         }
