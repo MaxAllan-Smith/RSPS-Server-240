@@ -19,107 +19,103 @@ internal class GameframeService {
 
         // 161:33 -> minimap/orbs (160)
         if (!state.minimapMounted) {
-            player.session.queue(
-                IfOpenSub(
-                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                    destinationComponentId = GameframeLayout.Slot.MINIMAP_ORBS,
-                    interfaceId = GameframeLayout.Interface.MINIMAP,
-                    type = OVERLAY_TYPE,
-                )
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.MINIMAP_ORBS,
+                interfaceId = GameframeLayout.Interface.MINIMAP,
             )
 
             state.minimapMounted = true
-
-            println(
-                "[Interfaces] Mounted minimap/orbs " +
-                    "${GameframeLayout.Interface.MINIMAP} at " +
-                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
-                    "${GameframeLayout.Slot.MINIMAP_ORBS} for '${player.username}'."
-            )
+            logMounted(player, "minimap/orbs", GameframeLayout.Slot.MINIMAP_ORBS, GameframeLayout.Interface.MINIMAP)
         }
 
+        // 161:76 -> combat (593)
         if (!state.combatMounted) {
-            player.session.queue(
-                IfOpenSub(
-                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                    destinationComponentId = GameframeLayout.Slot.COMBAT,
-                    interfaceId = GameframeLayout.Interface.COMBAT,
-                    type = OVERLAY_TYPE
-                )
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.COMBAT,
+                interfaceId = GameframeLayout.Interface.COMBAT,
             )
-            
+
             state.combatMounted = true
-            
-            println(
-                "[Interfaces] Mounted combat " +
-                    "${GameframeLayout.Interface.COMBAT} at " +
-                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
-                    "${GameframeLayout.Slot.COMBAT} for '${player.username}'."
-            )
+            logMounted(player, "combat", GameframeLayout.Slot.COMBAT, GameframeLayout.Interface.COMBAT)
         }
 
         // 161:77 -> skills (320)
         if (!state.skillsMounted) {
-            player.session.queue(
-                IfOpenSub(
-                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                    destinationComponentId = GameframeLayout.Slot.SKILLS,
-                    interfaceId = GameframeLayout.Interface.SKILLS,
-                    type = OVERLAY_TYPE,
-                )
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.SKILLS,
+                interfaceId = GameframeLayout.Interface.SKILLS,
             )
 
             state.skillsMounted = true
+            logMounted(player, "skills", GameframeLayout.Slot.SKILLS, GameframeLayout.Interface.SKILLS)
+        }
 
-            println(
-                "[Interfaces] Mounted skills " +
-                    "${GameframeLayout.Interface.SKILLS} at " +
-                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
-                    "${GameframeLayout.Slot.SKILLS} for '${player.username}'."
+        // 161:78 -> quests (399)
+        if (!state.questsMounted) {
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.QUESTS,
+                interfaceId = GameframeLayout.Interface.QUESTS,
             )
+
+            state.questsMounted = true
+            logMounted(player, "quests", GameframeLayout.Slot.QUESTS, GameframeLayout.Interface.QUESTS)
         }
 
         // 161:79 -> inventory (149)
         if (!state.inventoryMounted) {
-            player.session.queue(
-                IfOpenSub(
-                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                    destinationComponentId = GameframeLayout.Slot.INVENTORY,
-                    interfaceId = GameframeLayout.Interface.INVENTORY,
-                    type = OVERLAY_TYPE,
-                )
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.INVENTORY,
+                interfaceId = GameframeLayout.Interface.INVENTORY,
             )
 
             state.inventoryMounted = true
-
-            println(
-                "[Interfaces] Mounted inventory " +
-                    "${GameframeLayout.Interface.INVENTORY} at " +
-                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
-                    "${GameframeLayout.Slot.INVENTORY} for '${player.username}'."
-            )
+            logMounted(player, "inventory", GameframeLayout.Slot.INVENTORY, GameframeLayout.Interface.INVENTORY)
         }
 
         // 161:96 -> chatbox (162)
         if (!state.chatboxMounted) {
-            player.session.queue(
-                IfOpenSub(
-                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
-                    destinationComponentId = GameframeLayout.Slot.CHATBOX,
-                    interfaceId = GameframeLayout.Interface.CHATBOX,
-                    type = OVERLAY_TYPE,
-                )
+            mount(
+                player = player,
+                slot = GameframeLayout.Slot.CHATBOX,
+                interfaceId = GameframeLayout.Interface.CHATBOX,
             )
 
             state.chatboxMounted = true
-
-            println(
-                "[Interfaces] Mounted chatbox " +
-                    "${GameframeLayout.Interface.CHATBOX} at " +
-                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
-                    "${GameframeLayout.Slot.CHATBOX} for '${player.username}'."
-            )
+            logMounted(player, "chatbox", GameframeLayout.Slot.CHATBOX, GameframeLayout.Interface.CHATBOX)
         }
+    }
+
+    private fun mount(
+        player: Player,
+        slot: Int,
+        interfaceId: Int,
+    ) {
+        player.session.queue(
+            IfOpenSub(
+                destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
+                destinationComponentId = slot,
+                interfaceId = interfaceId,
+                type = OVERLAY_TYPE,
+            )
+        )
+    }
+
+    private fun logMounted(
+        player: Player,
+        name: String,
+        slot: Int,
+        interfaceId: Int,
+    ) {
+        println(
+            "[Interfaces] Mounted $name $interfaceId at " +
+                "${GameframeLayout.TopLevel.RESIZABLE}:$slot " +
+                "for '${player.username}'."
+        )
     }
 
     private companion object {

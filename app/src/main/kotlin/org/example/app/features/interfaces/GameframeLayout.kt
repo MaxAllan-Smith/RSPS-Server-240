@@ -19,6 +19,10 @@ internal object GameframeLayout {
         // SIDE1
         // 161:77 -> skills
         const val SKILLS: Int = 77
+        
+        // SIDE 2
+        // 161:78
+        const val QUESTS: Int = 78
 
         // SIDE3
         // 161:79 -> inventory
