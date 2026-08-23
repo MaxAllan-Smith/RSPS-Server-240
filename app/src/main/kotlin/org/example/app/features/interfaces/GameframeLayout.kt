@@ -18,6 +18,7 @@ internal object GameframeLayout {
         const val INVENTORY: Int = 79
         const val EQUIPMENT: Int = 80
         const val PRAYER: Int = 81
+        const val SPELLBOOK: Int = 82
 
         const val CHATBOX: Int = 96
     }

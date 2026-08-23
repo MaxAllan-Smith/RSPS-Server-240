@@ -28,4 +28,8 @@ internal enum class GameframeTab(
         slot = GameframeLayout.Slot.PRAYER,
         interfaceId = GameframeLayout.Interface.PRAYER,
     ),
+    MAGIC(
+        slot = GameframeLayout.Slot.SPELLBOOK,
+        interfaceId = GameframeLayout.Interface.SPELLBOOK
+    )
 }
