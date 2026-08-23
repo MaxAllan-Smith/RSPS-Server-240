@@ -38,6 +38,26 @@ internal class GameframeService {
             )
         }
 
+        if (!state.combatMounted) {
+            player.session.queue(
+                IfOpenSub(
+                    destinationInterfaceId = GameframeLayout.TopLevel.RESIZABLE,
+                    destinationComponentId = GameframeLayout.Slot.COMBAT,
+                    interfaceId = GameframeLayout.Interface.COMBAT,
+                    type = OVERLAY_TYPE
+                )
+            )
+            
+            state.combatMounted = true
+            
+            println(
+                "[Interfaces] Mounted combat " +
+                    "${GameframeLayout.Interface.COMBAT} at " +
+                    "${GameframeLayout.TopLevel.RESIZABLE}:" +
+                    "${GameframeLayout.Slot.COMBAT} for '${player.username}'."
+            )
+        }
+
         // 161:77 -> skills (320)
         if (!state.skillsMounted) {
             player.session.queue(

@@ -11,6 +11,10 @@ internal object GameframeLayout {
     object Slot {
         // 161:33 -> minimap/orbs
         const val MINIMAP_ORBS: Int = 33
+        
+        // SIDE 0
+        // 161.376 -> combat
+        const val COMBAT: Int = 76
 
         // SIDE1
         // 161:77 -> skills
