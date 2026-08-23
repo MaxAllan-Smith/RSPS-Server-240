@@ -48,16 +48,25 @@ internal class SkillCommandHandler(
             return
         }
 
-        skillService.addExperience(
-            player = player,
-            skill = skill,
-            amount = amount,
-        )
+        val change =
+            skillService.addExperience(
+                player = player,
+                skill = skill,
+                amount = amount,
+            )
 
         println(
-            "[Skills] Added $amount ${skill.name.lowercase()} XP " +
-                "to '${player.username}'."
+            "[Skills] Added ${change.gainedExperience} " +
+                "${skill.name.lowercase()} XP to '${player.username}'."
         )
+
+        if (change.levelledUp) {
+            println(
+                "[Skills] '${player.username}' levelled " +
+                    "${skill.name.lowercase()} " +
+                    "${change.previousLevel} -> ${change.level}."
+            )
+        }
     }
 
     private companion object {
