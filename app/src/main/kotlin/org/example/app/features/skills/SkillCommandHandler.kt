@@ -2,6 +2,7 @@ package org.example.app.features.skills
 
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import org.example.app.core.player.Player
+import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
 
 internal class SkillCommandHandler(
@@ -23,7 +24,9 @@ internal class SkillCommandHandler(
         }
 
         if (parts.size != 3) {
-            println("[Skills] Usage: ::xp <skill> <amount>")
+            player.sendGameMessage(
+                "Usage: ::xp <skill> <amount>"
+            )
             return
         }
 
@@ -36,7 +39,9 @@ internal class SkillCommandHandler(
             }
 
         if (skill == null) {
-            println("[Skills] Unknown skill '${parts[1]}'.")
+            player.sendGameMessage(
+                "Unknown skill '${parts[1]}'."
+            )
             return
         }
 
@@ -44,7 +49,9 @@ internal class SkillCommandHandler(
             parts[2].toIntOrNull()
 
         if (amount == null || amount < 0) {
-            println("[Skills] Invalid XP amount '${parts[2]}'.")
+            player.sendGameMessage(
+                "Invalid XP amount '${parts[2]}'."
+            )
             return
         }
 
@@ -54,6 +61,19 @@ internal class SkillCommandHandler(
                 skill = skill,
                 amount = amount,
             )
+
+        player.sendGameMessage(
+            "Added ${change.gainedExperience} " +
+                "${skill.displayName} XP."
+        )
+
+        if (change.levelledUp) {
+            player.sendGameMessage(
+                "Congratulations, you've advanced your " +
+                    "${skill.displayName} level. " +
+                    "You are now level ${change.level}."
+            )
+        }
 
         println(
             "[Skills] Added ${change.gainedExperience} " +
@@ -68,6 +88,12 @@ internal class SkillCommandHandler(
             )
         }
     }
+
+    private val Skill.displayName: String
+        get() =
+            name
+                .lowercase()
+                .replaceFirstChar(Char::uppercase)
 
     private companion object {
         const val COMMAND: String = "xp"
