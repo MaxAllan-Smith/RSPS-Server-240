@@ -3,6 +3,7 @@ package org.example.app.features.skills
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
+import org.example.app.core.skills.SkillChange
 
 internal class SkillService {
 
@@ -29,16 +30,19 @@ internal class SkillService {
         player: Player,
         skill: Skill,
         amount: Int,
-    ) {
-        player.skills.addExperience(
-            skill = skill,
-            amount = amount,
-        )
+    ): SkillChange {
+        val change =
+            player.skills.addExperience(
+                skill = skill,
+                amount = amount,
+            )
 
         sync(
             player = player,
             skill = skill,
         )
+
+        return change
     }
 
     private fun sync(
