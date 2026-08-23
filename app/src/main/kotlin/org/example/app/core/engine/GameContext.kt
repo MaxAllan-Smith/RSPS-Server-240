@@ -3,6 +3,7 @@ package org.example.app.core.engine
 import net.rsprot.protocol.api.NetworkService
 import org.example.app.core.player.Player
 import org.example.app.core.player.PlayerManager
+import org.example.app.core.vars.VarbitDefinitionRepository
 
 /**
  * Runtime services exposed to feature hooks.
@@ -13,4 +14,5 @@ import org.example.app.core.player.PlayerManager
 data class GameContext(
     val networkService: NetworkService<Player>,
     val players: PlayerManager,
+    val varbits: VarbitDefinitionRepository
 )

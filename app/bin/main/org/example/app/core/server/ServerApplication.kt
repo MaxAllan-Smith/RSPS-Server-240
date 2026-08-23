@@ -10,6 +10,7 @@ import org.example.app.core.network.RsProtNetworkFactory
 import org.example.app.core.player.PlayerManager
 import org.example.app.core.protocol.RsProtInfoSynchronizer
 import org.example.app.core.security.RsaKeyManager
+import org.example.app.core.vars.VarbitDefinitionRepository
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -44,7 +45,7 @@ class ServerApplication(
 
             println("[Features] Installed: ${featureRuntime.featureIds.joinToString()}")
 
-            val network = RsProtNetworkFactory(
+            val networkService = RsProtNetworkFactory(
                 config = config,
                 rsaKey = rsa.rsProtKey,
                 huffmanProvider = huffman,
@@ -52,28 +53,39 @@ class ServerApplication(
                 features = featureRuntime,
             ).build()
 
-            val players = PlayerManager(network)
-            val context = GameContext(network, players)
+            val playerManager = PlayerManager(networkService)
+
+            val varbitDefinitions = VarbitDefinitionRepository(
+                cache.directory
+            )
+
+            val context = GameContext(
+                networkService = networkService,
+                players = playerManager,
+                varbits = varbitDefinitions
+
+            )
+
             val engine = GameEngine(
                 context = context,
                 features = featureRuntime,
-                infoSynchronizer = RsProtInfoSynchronizer(players),
+                infoSynchronizer = RsProtInfoSynchronizer(playerManager),
                 cycleMillis = config.gameCycleMillis,
             )
 
             try {
                 println("\n[Server] Starting RSProt...")
-                network.start()
+                networkService.start()
                 engine.start()
             } catch (t: Throwable) {
                 runCatching { engine.close() }
-                runCatching { network.shutdownNow() }
+                runCatching { networkService.shutdownNow() }
                 throw t
             }
 
             installShutdownHook(
                 gameEngine = engine,
-                networkShutdown = network::shutdownNow,
+                networkShutdown = networkService::shutdownNow,
                 js5Provider = js5,
             )
 
@@ -128,10 +140,8 @@ class ServerApplication(
                     try {
                         gameEngine.close()
                     } finally {
-                        try {
+                        js5Provider.use { js5Provider ->
                             networkShutdown()
-                        } finally {
-                            js5Provider.close()
                         }
                     }
 

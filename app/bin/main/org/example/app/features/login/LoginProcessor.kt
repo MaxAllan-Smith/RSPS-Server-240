@@ -12,10 +12,19 @@ import org.example.app.core.player.WorldPosition
 internal class LoginProcessor(
     private val queue: LoginQueue,
 ) {
-    fun process(context: GameContext) {
+
+    fun process(
+        context: GameContext,
+    ) {
         while (true) {
-            val attempt = queue.poll() ?: break
-            accept(context, attempt)
+            val attempt =
+                queue.poll()
+                    ?: break
+
+            accept(
+                context = context,
+                attempt = attempt,
+            )
         }
     }
 
@@ -23,51 +32,89 @@ internal class LoginProcessor(
         context: GameContext,
         attempt: LoginAttempt,
     ) {
-        val username = attempt.block.username
-        val responseHandler = attempt.responseHandler
+        val username =
+            attempt.block.username
 
-        if (!responseHandler.ctx.channel().isActive) {
+        val responseHandler =
+            attempt.responseHandler
+
+        if (
+            !responseHandler
+                .ctx
+                .channel()
+                .isActive
+        ) {
             return
         }
 
-        if (context.players.isOnline(username)) {
-            println("[Login] Duplicate login rejected: '$username'")
-            responseHandler.writeFailedResponse(LoginResponse.Duplicate)
+        if (
+            context.players.isOnline(
+                username
+            )
+        ) {
+            println(
+                "[Login] Duplicate login rejected: '$username'"
+            )
+
+            responseHandler.writeFailedResponse(
+                LoginResponse.Duplicate
+            )
+
             return
         }
 
-        val index = context.players.nextFreeIndex()
+        val index =
+            context.players.nextFreeIndex()
 
         if (index == null) {
-            println("[Login] World full; rejecting '$username'.")
-            responseHandler.writeFailedResponse(LoginResponse.ServerFull)
+            println(
+                "[Login] World full; rejecting '$username'."
+            )
+
+            responseHandler.writeFailedResponse(
+                LoginResponse.ServerFull
+            )
+
             return
         }
 
-        var infos: Infos? = null
+        var infos: Infos? =
+            null
 
         try {
             infos =
-                context.networkService.infoProtocols.alloc(
-                    index,
-                    OldSchoolClientType.DESKTOP,
-                )
+                context
+                    .networkService
+                    .infoProtocols
+                    .alloc(
+                        index,
+                        OldSchoolClientType.DESKTOP,
+                    )
 
-            val position = WorldPosition.LUMBRIDGE
+            val position =
+                WorldPosition.LUMBRIDGE
 
             infos.updateRootCoord(
                 position.level,
                 position.x,
                 position.z,
             )
+
             infos.updateRootBuildAreaCenteredOnPlayer(
                 position.x,
                 position.z,
             )
 
-            DefaultAppearance.apply(infos.playerInfo, username)
+            DefaultAppearance.apply(
+                infos.playerInfo,
+                username,
+            )
 
-            val identity = LocalIdentity.forUsername(username)
+            val identity =
+                LocalIdentity.forUsername(
+                    username
+                )
+
             val response =
                 LoginResponse.Ok(
                     authenticatorResponse =
@@ -76,16 +123,20 @@ internal class LoginProcessor(
                     playerMod = false,
                     index = index,
                     member = true,
-                    accountHash = identity.accountHash,
-                    userId = identity.userId,
-                    userHash = identity.userHash,
+                    accountHash =
+                        identity.accountHash,
+                    userId =
+                        identity.userId,
+                    userHash =
+                        identity.userHash,
                 )
 
             val session =
-                responseHandler.writeSuccessfulResponse(
-                    response,
-                    attempt.block,
-                )
+                responseHandler
+                    .writeSuccessfulResponse(
+                        response,
+                        attempt.block,
+                    )
 
             val player =
                 Player(
@@ -94,33 +145,62 @@ internal class LoginProcessor(
                     session = session,
                     infos = infos,
                     position = position,
-                    resizable = attempt.block.resizable,
+                    resizable =
+                        attempt.block.resizable,
+                    varbitDefinitions =
+                        context.varbits,
                 )
 
-            if (!context.players.add(player)) {
+            if (
+                !context.players.add(
+                    player
+                )
+            ) {
                 return
             }
 
             println(
                 "[Login] Accepted '$username' " +
                     "index=$index " +
-                    "position=${position.x},${position.z},${position.level}"
+                    "position=" +
+                    "${position.x}," +
+                    "${position.z}," +
+                    "${position.level}"
             )
         } catch (t: Throwable) {
             if (infos != null) {
                 try {
-                    context.networkService.infoProtocols.dealloc(infos)
-                } catch (cleanupFailure: Throwable) {
-                    t.addSuppressed(cleanupFailure)
+                    context
+                        .networkService
+                        .infoProtocols
+                        .dealloc(
+                            infos
+                        )
+                } catch (
+                    cleanupFailure: Throwable
+                ) {
+                    t.addSuppressed(
+                        cleanupFailure
+                    )
                 }
             }
 
-            System.err.println("[Login] Failed to accept '$username'.")
+            System.err.println(
+                "[Login] Failed to accept '$username'."
+            )
+
             t.printStackTrace()
 
-            if (responseHandler.ctx.channel().isActive) {
+            if (
+                responseHandler
+                    .ctx
+                    .channel()
+                    .isActive
+            ) {
                 try {
-                    responseHandler.ctx.close()
+                    responseHandler
+                        .ctx
+                        .close()
                 } catch (_: Throwable) {
                     // Pipeline may already be tearing down.
                 }

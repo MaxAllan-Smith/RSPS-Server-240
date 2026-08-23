@@ -12,11 +12,27 @@ internal class GameframeService {
             return
         }
 
-        val state = player.gameframeState
+        val state =
+            player.gameframeState
 
         if (state.chatboxMounted) {
             return
         }
+
+        /*
+         * The chatbox client script checks varbit 8119 before allowing
+         * normal chat input.
+         *
+         * 0 = player has not configured a display name
+         * 1 = player has a display name and may use the chatbox
+         *
+         * PlayerVars resolves the actual backing varp and bit range from
+         * the active revision-240.3 cache.
+         */
+        player.vars.setVarbit(
+            id = CHATBOX_UNLOCKED_VARBIT,
+            value = 1,
+        )
 
         player.session.queue(
             IfOpenSub(
@@ -43,6 +59,11 @@ internal class GameframeService {
     }
 
     private companion object {
-        const val OVERLAY_TYPE: Int = 1
+
+        const val OVERLAY_TYPE: Int =
+            1
+
+        const val CHATBOX_UNLOCKED_VARBIT: Int =
+            8119
     }
 }

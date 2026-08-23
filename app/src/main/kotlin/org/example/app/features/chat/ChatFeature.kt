@@ -9,6 +9,11 @@ internal class ChatFeature(
         ChatService(),
 ) : Feature {
 
+    private val publicChatHandler =
+        PublicChatHandler(
+            chatService = chatService,
+        )
+
     override val id: String =
         "chat"
 
@@ -17,17 +22,9 @@ internal class ChatFeature(
     ) {
         registrar.packets {
             addListener<MessagePublic> { packet ->
-                chatService.recordMessage(
+                publicChatHandler.handle(
                     player = this,
-                    message = packet.message,
-                )
-
-                println(
-                    "[Chat] '$username' " +
-                        "message='${packet.message}' " +
-                        "type=${packet.type} " +
-                        "colour=${packet.colour} " +
-                        "effect=${packet.effect}"
+                    packet = packet,
                 )
             }
         }
