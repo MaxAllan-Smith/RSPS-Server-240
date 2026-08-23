@@ -12,16 +12,6 @@ internal class GameframeService {
 
         val state = player.gameframeState
 
-        player.vars.setVarbit(
-            id = CHATBOX_UNLOCKED_VARBIT,
-            value = 1,
-        )
-
-        player.vars.setVarbit(
-            id = JOURNAL_TAB_VARBIT,
-            value = JOURNAL_QUEST_TAB,
-        )
-
         mountMinimap(player, state)
         mountGameframeTabs(player, state)
         mountJournal(player, state)
@@ -125,6 +115,11 @@ internal class GameframeService {
     ) {
         if (state.journalMounted) return
 
+        player.vars.setVarbit(
+            id = JOURNAL_TAB_VARBIT,
+            value = JOURNAL_QUEST_TAB,
+        )
+
         mount(
             player = player,
             parentInterface = GameframeLayout.TopLevel.RESIZABLE,
@@ -163,6 +158,11 @@ internal class GameframeService {
         state: GameframeState,
     ) {
         if (state.chatboxMounted) return
+
+        player.vars.setVarbit(
+            id = CHATBOX_UNLOCKED_VARBIT,
+            value = 1,
+        )
 
         mount(
             player = player,

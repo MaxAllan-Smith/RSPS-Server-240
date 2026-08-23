@@ -8,19 +8,13 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Stable single-threaded game-cycle coordinator.
- *
- * Gameplay is not implemented here. Features plug into the defined lifecycle
- * phases through FeatureRegistrar while RSProt packet processing/info building
- * remains centralized and ordered correctly.
- */
 class GameEngine(
     private val context: GameContext,
     private val features: FeatureRuntime,
     private val infoSynchronizer: RsProtInfoSynchronizer,
     private val cycleMillis: Long,
 ) : AutoCloseable {
+
     private val running = AtomicBoolean(false)
 
     private val executor =
@@ -31,6 +25,7 @@ class GameEngine(
         }
 
     private var cycleTask: ScheduledFuture<*>? = null
+    private var networkTask: ScheduledFuture<*>? = null
     private var communicationThreadBound = false
 
     fun start() {
@@ -46,13 +41,32 @@ class GameEngine(
                 TimeUnit.MILLISECONDS,
             )
 
+        networkTask =
+            executor.scheduleWithFixedDelay(
+                ::runNetworkPulseSafely,
+                0L,
+                NETWORK_PULSE_MILLIS,
+                TimeUnit.MILLISECONDS,
+            )
+
         println("[Engine] Game engine started (${cycleMillis}ms cycle).")
+        println("[Engine] Network pulse = ${NETWORK_PULSE_MILLIS}ms.")
+    }
+
+    private fun runNetworkPulseSafely() {
+        if (!running.get()) return
+
+        try {
+            bindCommunicationThread()
+            networkPulse()
+        } catch (t: Throwable) {
+            System.err.println("[Engine] Unhandled exception in network pulse:")
+            t.printStackTrace()
+        }
     }
 
     private fun runCycleSafely() {
-        if (!running.get()) {
-            return
-        }
+        if (!running.get()) return
 
         try {
             bindCommunicationThread()
@@ -64,9 +78,7 @@ class GameEngine(
     }
 
     private fun bindCommunicationThread() {
-        if (communicationThreadBound) {
-            return
-        }
+        if (communicationThreadBound) return
 
         context.networkService.setCommunicationThread(
             Thread.currentThread(),
@@ -81,26 +93,32 @@ class GameEngine(
         )
     }
 
-    private fun cycle() {
-        // 1. Apply Netty disconnect callbacks on the game thread.
+    private fun networkPulse() {
         context.players.processDisconnections()
 
-        // 2. World-level feature work, e.g. accepting queued logins.
-        features.cycleStart(context)
-
         val activePlayers = context.players.snapshot()
-        if (activePlayers.isEmpty()) {
-            return
-        }
+        if (activePlayers.isEmpty()) return
 
-        // 3. RSProt decodes only packets with registered feature consumers.
         forEachConnected(activePlayers) { player ->
             player.session.processIncomingPackets(player)
         }
 
-        // 4. Keep RSProt's root coordinate in sync with game state.
+        forEachConnected(activePlayers) { player ->
+            player.session.flush()
+        }
+    }
+
+    private fun cycle() {
+        // 1. World-level feature work, e.g. accepting queued logins.
+        features.cycleStart(context)
+
+        val activePlayers = context.players.snapshot()
+        if (activePlayers.isEmpty()) return
+
+        // 2. Keep RSProt's root coordinate in sync with game state.
         forEachConnected(activePlayers) { player ->
             val position = player.position
+
             player.infos.updateRootCoord(
                 position.level,
                 position.x,
@@ -108,25 +126,25 @@ class GameEngine(
             )
         }
 
-        // 5. Feature packets/state that must precede infoProtocols.update().
+        // 3. Feature state that must precede infoProtocols.update().
         forEachConnected(activePlayers) { player ->
             features.beforeInfoUpdate(context, player)
         }
 
-        // 6. Expensive RSProt player/NPC/world-entity info build, once per tick.
+        // 4. Build player/NPC/world-entity information.
         context.networkService.infoProtocols.update()
 
-        // 7. Queue generic RSProt information output.
+        // 5. Queue generic RSProt information output.
         forEachConnected(activePlayers) { player ->
             infoSynchronizer.queue(player)
         }
 
-        // 8. Feature output that should be sent after info packets.
+        // 6. Feature output that should follow info packets.
         forEachConnected(activePlayers) { player ->
             features.afterInfoUpdate(context, player)
         }
 
-        // 9. Flush once after every core/feature packet for this cycle is queued.
+        // 7. Flush everything produced by this game cycle.
         forEachConnected(activePlayers) { player ->
             player.session.flush()
         }
@@ -144,10 +162,9 @@ class GameEngine(
     }
 
     override fun close() {
-        if (!running.compareAndSet(true, false)) {
-            return
-        }
+        if (!running.compareAndSet(true, false)) return
 
+        networkTask?.cancel(false)
         cycleTask?.cancel(false)
 
         val cleanup =
@@ -172,5 +189,9 @@ class GameEngine(
         }
 
         println("[Engine] Game engine stopped.")
+    }
+
+    private companion object {
+        const val NETWORK_PULSE_MILLIS: Long = 20L
     }
 }
