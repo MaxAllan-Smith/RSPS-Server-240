@@ -43,5 +43,9 @@ internal enum class GameframeTab(
     IGNORE_LIST(
         slot = GameframeLayout.Slot.IGNORE_LIST,
         interfaceId = GameframeLayout.Interface.IGNORE_LIST
+    ),
+    LOGOUT(
+        slot = GameframeLayout.Slot.LOGOUT,
+        interfaceId = GameframeLayout.Interface.LOGOUT
     )
 }
