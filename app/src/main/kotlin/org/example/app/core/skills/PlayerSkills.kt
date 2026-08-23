@@ -31,12 +31,12 @@ class PlayerSkills {
     fun addExperience(
         skill: Skill,
         amount: Int,
-    ) {
+    ): SkillChange {
         require(amount >= 0) {
             "Experience amount cannot be negative."
         }
 
-        setExperience(
+        return setExperience(
             skill = skill,
             experience = experience(skill) + amount,
         )
@@ -45,15 +45,21 @@ class PlayerSkills {
     fun setExperience(
         skill: Skill,
         experience: Int,
-    ) {
+    ): SkillChange {
+        val previousExperience =
+            this.experience(skill)
+
+        val previousBaseLevel =
+            baseLevel(skill)
+
+        val previousCurrentLevel =
+            currentLevel(skill)
+
         val cappedExperience =
             experience.coerceIn(
                 minimumValue = 0,
                 maximumValue = SkillExperience.MAX_EXPERIENCE,
             )
-
-        val previousBaseLevel =
-            baseLevel(skill)
 
         val newBaseLevel =
             SkillExperience.levelForExperience(cappedExperience)
@@ -64,9 +70,17 @@ class PlayerSkills {
         baseLevels[skill.id] =
             newBaseLevel
 
-        if (currentLevel(skill) == previousBaseLevel) {
+        if (previousCurrentLevel == previousBaseLevel) {
             currentLevels[skill.id] =
                 newBaseLevel
         }
+
+        return SkillChange(
+            skill = skill,
+            previousExperience = previousExperience,
+            experience = cappedExperience,
+            previousLevel = previousBaseLevel,
+            level = newBaseLevel,
+        )
     }
 }
