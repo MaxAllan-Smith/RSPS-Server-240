@@ -3,9 +3,11 @@ package org.example.app.features.skills
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
+import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
+import org.example.app.core.skills.SkillExperience
 
 internal class SkillLevelUpService {
 
@@ -14,6 +16,11 @@ internal class SkillLevelUpService {
         change: SkillChange,
     ) {
         if (!change.levelledUp) return
+
+        playSound(
+            player = player,
+            level = change.level,
+        )
 
         player.session.queue(
             IfOpenSub(
@@ -61,6 +68,39 @@ internal class SkillLevelUpService {
         )
     }
 
+    private fun playSound(
+        player: Player,
+        level: Int,
+    ) {
+        player.session.queue(
+            SynthSound(
+                id = LEVEL_UP_START_SOUND,
+                loops = 1,
+                delay = 0,
+            )
+        )
+
+        if (level == SkillExperience.MAX_LEVEL) {
+            player.session.queue(
+                SynthSound(
+                    id = LEVEL_99_FINISH_SOUND,
+                    loops = 1,
+                    delay = LEVEL_99_FINISH_DELAY,
+                )
+            )
+
+            return
+        }
+
+        player.session.queue(
+            SynthSound(
+                id = LEVEL_UP_FINISH_SOUND,
+                loops = 1,
+                delay = LEVEL_UP_FINISH_DELAY,
+            )
+        )
+    }
+
     private fun title(change: SkillChange): String {
         val name =
             displayName(change.skill)
@@ -100,7 +140,20 @@ internal class SkillLevelUpService {
 
         const val MODAL_TYPE: Int = 0
 
+        const val LEVEL_UP_START_SOUND: Int = 2396
+        const val LEVEL_UP_FINISH_SOUND: Int = 2384
+        const val LEVEL_99_FINISH_SOUND: Int = 2379
+
+        const val LEVEL_UP_FINISH_DELAY: Int = 25
+        const val LEVEL_99_FINISH_DELAY: Int = 35
+
         val VOWELS: Set<Char> =
-            setOf('a', 'e', 'i', 'o', 'u')
+            setOf(
+                'a',
+                'e',
+                'i',
+                'o',
+                'u',
+            )
     }
 }
