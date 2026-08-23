@@ -25,13 +25,11 @@ class Player(
     val resizable: Boolean,
     varbitDefinitions: VarbitDefinitionRepository,
 ) {
-    private val disconnected =
-        AtomicBoolean(false)
+    private val disconnected = AtomicBoolean(false)
 
     private var disconnectHandler: ((String) -> Unit)? = null
 
-    val featureState =
-        FeatureStateStore()
+    val featureState = FeatureStateStore()
 
     val vars =
         PlayerVars(
