@@ -1,6 +1,7 @@
 package org.example.app.features
 
 import org.example.app.core.feature.Feature
+import org.example.app.features.chat.ChatFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.world.WorldBootstrapFeature
 
@@ -15,5 +16,6 @@ object FeatureCatalog {
         listOf(
             LoginFeature(),
             WorldBootstrapFeature(),
+            ChatFeature()
         )
 }

@@ -14,7 +14,7 @@ import org.example.app.core.feature.FeatureRuntime
 import org.example.app.core.player.Player
 
 class RsProtNetworkFactory(
-    private val config: ServerConfig,
+    config: ServerConfig,
     private val rsaKey: RsaKeyPair,
     private val huffmanProvider: HuffmanCodecProvider,
     private val js5Provider: Js5GroupProvider,
