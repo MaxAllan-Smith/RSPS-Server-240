@@ -53,16 +53,22 @@ internal class GameframeService {
             logMounted(player, "skills", GameframeLayout.Slot.SKILLS, GameframeLayout.Interface.SKILLS)
         }
 
-        // 161:78 -> quests (399)
-        if (!state.questsMounted) {
+        // 161:78 -> journal: quest list (399)
+        if (!state.questListMounted) {
             mount(
                 player = player,
-                slot = GameframeLayout.Slot.QUESTS,
-                interfaceId = GameframeLayout.Interface.QUESTS,
+                slot = GameframeLayout.Slot.JOURNAL,
+                interfaceId = GameframeLayout.Interface.QUEST_LIST,
             )
 
-            state.questsMounted = true
-            logMounted(player, "quests", GameframeLayout.Slot.QUESTS, GameframeLayout.Interface.QUESTS)
+            state.questListMounted = true
+
+            logMounted(
+                player,
+                "quest list",
+                GameframeLayout.Slot.JOURNAL,
+                GameframeLayout.Interface.QUEST_LIST,
+            )
         }
 
         // 161:79 -> inventory (149)

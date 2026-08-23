@@ -11,21 +11,17 @@ internal object GameframeLayout {
     object Slot {
         // 161:33 -> minimap/orbs
         const val MINIMAP_ORBS: Int = 33
-        
-        // SIDE 0
-        // 161.376 -> combat
+
+        // SIDE0
         const val COMBAT: Int = 76
 
         // SIDE1
-        // 161:77 -> skills
         const val SKILLS: Int = 77
-        
-        // SIDE 2
-        // 161:78
-        const val QUESTS: Int = 78
+
+        // SIDE2 - shared journal slot
+        const val JOURNAL: Int = 78
 
         // SIDE3
-        // 161:79 -> inventory
         const val INVENTORY: Int = 79
 
         // 161:96 -> chatbox
@@ -38,7 +34,7 @@ internal object GameframeLayout {
 
         const val COMBAT: Int = 593
         const val SKILLS: Int = 320
-        const val QUESTS: Int = 399
+        const val QUEST_LIST: Int = 399
         const val INVENTORY: Int = 149
         const val EQUIPMENT: Int = 387
         const val PRAYER: Int = 541
