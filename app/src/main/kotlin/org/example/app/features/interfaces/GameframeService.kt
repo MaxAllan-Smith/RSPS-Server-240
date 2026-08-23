@@ -112,6 +112,29 @@ internal class GameframeService {
         }
     }
 
+    fun selectJournalTab(
+        player: Player,
+        tab: JournalTab,
+    ) {
+        player.vars.setVarbit(
+            id = JOURNAL_TAB_VARBIT,
+            value = tab.varbitValue,
+        )
+
+        mount(
+            player = player,
+            parentInterface = GameframeLayout.Interface.JOURNAL,
+            slot = GameframeLayout.JournalSlot.CONTENT,
+            interfaceId = tab.interfaceId,
+        )
+
+        println(
+            "[Interfaces] Selected journal tab " +
+                "${tab.name.lowercase()} " +
+                "(${tab.interfaceId}) for '${player.username}'."
+        )
+    }
+
     private fun mount(
         player: Player,
         parentInterface: Int,
