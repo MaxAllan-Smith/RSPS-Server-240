@@ -1,5 +1,6 @@
 package org.example.app.features.skills
 
+import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 
@@ -8,11 +9,26 @@ internal class SkillsFeature(
         SkillService(),
 ) : Feature {
 
-    override val id: String = "skills"
+    private val skillCommandHandler =
+        SkillCommandHandler(
+            skillService = skillService,
+        )
+
+    override val id: String =
+        "skills"
 
     override fun install(
         registrar: FeatureRegistrar,
     ) {
+        registrar.packets {
+            addListener<ClientCheat> { packet ->
+                skillCommandHandler.handle(
+                    player = this,
+                    packet = packet,
+                )
+            }
+        }
+
         registrar.beforeInfoUpdate(
             priority = SKILLS_PRIORITY,
         ) { _, player ->
