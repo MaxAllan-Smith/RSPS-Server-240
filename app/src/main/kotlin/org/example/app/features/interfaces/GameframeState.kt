@@ -4,11 +4,9 @@ import org.example.app.core.player.Player
 
 internal class GameframeState(
     var minimapMounted: Boolean = false,
-    var combatMounted: Boolean = false,
-    var skillsMounted: Boolean = false,
     var journalMounted: Boolean = false,
-    var inventoryMounted: Boolean = false,
     var chatboxMounted: Boolean = false,
+    val mountedTabs: MutableSet<GameframeTab> = mutableSetOf(),
 )
 
 internal val Player.gameframeState: GameframeState
