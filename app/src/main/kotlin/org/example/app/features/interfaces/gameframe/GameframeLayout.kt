@@ -9,6 +9,7 @@ internal object GameframeLayout {
     }
 
     object Slot {
+        const val MAIN_MODAL: Int = 16
         const val MINIMAP_ORBS: Int = 33
 
         // SIDE0..SIDE13
@@ -35,6 +36,7 @@ internal object GameframeLayout {
     }
 
     object Interface {
+        const val WORLD_SWITCHER: Int = 69
         const val MINIMAP: Int = 160
         const val CHATBOX: Int = 162
 

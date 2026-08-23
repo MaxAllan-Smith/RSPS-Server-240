@@ -7,23 +7,31 @@ import org.example.app.features.interfaces.gameframe.GameframeService
 import org.example.app.features.interfaces.journal.JournalTabHandler
 import org.example.app.features.interfaces.logout.LogoutHandler
 import org.example.app.features.interfaces.social.SocialTabHandler
+import org.example.app.features.interfaces.worldswitcher.WorldSwitcherHandler
 
 internal class InterfaceFeature(
     private val gameframeService: GameframeService =
         GameframeService(),
 ) : Feature {
 
-    private val journalTabHandler = JournalTabHandler(
-        gameframeService = gameframeService,
-    )
+    private val journalTabHandler =
+        JournalTabHandler(
+            gameframeService = gameframeService,
+        )
 
-    private val socialTabHandler = SocialTabHandler(
-        gameframeService = gameframeService,
-    )
+    private val socialTabHandler =
+        SocialTabHandler(
+            gameframeService = gameframeService,
+        )
 
-    private val logoutHandler = LogoutHandler()
+    private val logoutHandler =
+        LogoutHandler()
 
-    override val id: String = "interfaces"
+    private val worldSwitcherHandler =
+        WorldSwitcherHandler()
+
+    override val id: String =
+        "interfaces"
 
     override fun install(
         registrar: FeatureRegistrar,
@@ -42,7 +50,12 @@ internal class InterfaceFeature(
 
                 logoutHandler.handle(
                     player = this,
-                    packet = packet
+                    packet = packet,
+                )
+
+                worldSwitcherHandler.handle(
+                    player = this,
+                    packet = packet,
                 )
             }
         }
