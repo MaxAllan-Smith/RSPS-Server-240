@@ -17,11 +17,64 @@ internal class SkillLevelUpService {
     ) {
         if (!change.levelledUp) return
 
+        playFireworks(player)
         playSound(
             player = player,
             level = change.level,
         )
 
+        openLevelUpDisplay(
+            player = player,
+            change = change,
+        )
+    }
+
+    private fun playFireworks(player: Player) {
+        player.infos.playerInfo.avatar.extendedInfo.setSpotAnim(
+            slot = LEVEL_UP_GRAPHIC_SLOT,
+            id = LEVEL_UP_FIREWORKS_GRAPHIC,
+            delay = 0,
+            height = 0,
+        )
+    }
+
+    private fun playSound(
+        player: Player,
+        level: Int,
+    ) {
+        player.session.queue(
+            SynthSound(
+                id = LEVEL_UP_START_SOUND,
+                loops = 1,
+                delay = 0,
+            )
+        )
+
+        if (level == SkillExperience.MAX_LEVEL) {
+            player.session.queue(
+                SynthSound(
+                    id = LEVEL_99_FINISH_SOUND,
+                    loops = 1,
+                    delay = LEVEL_99_FINISH_DELAY,
+                )
+            )
+
+            return
+        }
+
+        player.session.queue(
+            SynthSound(
+                id = LEVEL_UP_FINISH_SOUND,
+                loops = 1,
+                delay = LEVEL_UP_FINISH_DELAY,
+            )
+        )
+    }
+
+    private fun openLevelUpDisplay(
+        player: Player,
+        change: SkillChange,
+    ) {
         player.session.queue(
             IfOpenSub(
                 destinationInterfaceId = CHATBOX_INTERFACE,
@@ -68,39 +121,6 @@ internal class SkillLevelUpService {
         )
     }
 
-    private fun playSound(
-        player: Player,
-        level: Int,
-    ) {
-        player.session.queue(
-            SynthSound(
-                id = LEVEL_UP_START_SOUND,
-                loops = 1,
-                delay = 0,
-            )
-        )
-
-        if (level == SkillExperience.MAX_LEVEL) {
-            player.session.queue(
-                SynthSound(
-                    id = LEVEL_99_FINISH_SOUND,
-                    loops = 1,
-                    delay = LEVEL_99_FINISH_DELAY,
-                )
-            )
-
-            return
-        }
-
-        player.session.queue(
-            SynthSound(
-                id = LEVEL_UP_FINISH_SOUND,
-                loops = 1,
-                delay = LEVEL_UP_FINISH_DELAY,
-            )
-        )
-    }
-
     private fun title(change: SkillChange): String {
         val name =
             displayName(change.skill)
@@ -139,6 +159,9 @@ internal class SkillLevelUpService {
         const val CONTINUE_COMPONENT: Int = 3
 
         const val MODAL_TYPE: Int = 0
+
+        const val LEVEL_UP_GRAPHIC_SLOT: Int = 0
+        const val LEVEL_UP_FIREWORKS_GRAPHIC: Int = 199
 
         const val LEVEL_UP_START_SOUND: Int = 2396
         const val LEVEL_UP_FINISH_SOUND: Int = 2384
