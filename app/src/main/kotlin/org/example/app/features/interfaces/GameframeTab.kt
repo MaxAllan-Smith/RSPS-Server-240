@@ -28,36 +28,44 @@ internal enum class GameframeTab(
         slot = GameframeLayout.Slot.PRAYER,
         interfaceId = GameframeLayout.Interface.PRAYER,
     ),
+
     SPELLBOOK(
         slot = GameframeLayout.Slot.SPELLBOOK,
-        interfaceId = GameframeLayout.Interface.SPELLBOOK
+        interfaceId = GameframeLayout.Interface.SPELLBOOK,
     ),
+
     FRIENDS_CHAT(
         slot = GameframeLayout.Slot.FRIENDS_CHAT,
-        interfaceId = GameframeLayout.Interface.FRIENDS_CHAT
+        interfaceId = GameframeLayout.Interface.FRIENDS_CHAT,
     ),
-    FRIENDS_LIST(
-        slot = GameframeLayout.Slot.FRIENDS_LIST,
-        interfaceId = GameframeLayout.Interface.FRIENDS_LIST
-    ),
+
     ACCOUNT_MANAGEMENT(
         slot = GameframeLayout.Slot.ACCOUNT_MANAGEMENT,
-        interfaceId = GameframeLayout.Interface.ACCOUNT_MANAGEMENT
+        interfaceId = GameframeLayout.Interface.ACCOUNT_MANAGEMENT,
     ),
+
+    FRIENDS_LIST(
+        slot = GameframeLayout.Slot.FRIENDS_LIST,
+        interfaceId = GameframeLayout.Interface.FRIENDS_LIST,
+    ),
+
     LOGOUT(
         slot = GameframeLayout.Slot.LOGOUT,
-        interfaceId = GameframeLayout.Interface.LOGOUT
+        interfaceId = GameframeLayout.Interface.LOGOUT,
     ),
+
     SETTINGS(
         slot = GameframeLayout.Slot.SETTINGS,
-        interfaceId = GameframeLayout.Interface.SETTINGS
+        interfaceId = GameframeLayout.Interface.SETTINGS,
     ),
+
     EMOTES(
         slot = GameframeLayout.Slot.EMOTES,
-        interfaceId = GameframeLayout.Interface.EMOTES
+        interfaceId = GameframeLayout.Interface.EMOTES,
     ),
+
     MUSIC(
         slot = GameframeLayout.Slot.MUSIC,
-        interfaceId = GameframeLayout.Interface.MUSIC
-    )
+        interfaceId = GameframeLayout.Interface.MUSIC,
+    ),
 }

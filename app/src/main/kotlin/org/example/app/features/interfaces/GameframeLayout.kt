@@ -11,7 +11,7 @@ internal object GameframeLayout {
     object Slot {
         const val MINIMAP_ORBS: Int = 33
 
-        // SIDE0..SIDE5
+        // SIDE0..SIDE13
         const val COMBAT: Int = 76
         const val SKILLS: Int = 77
         const val JOURNAL: Int = 78
@@ -20,8 +20,8 @@ internal object GameframeLayout {
         const val PRAYER: Int = 81
         const val SPELLBOOK: Int = 82
         const val FRIENDS_CHAT: Int = 83
-        const val FRIENDS_LIST: Int = 85
         const val ACCOUNT_MANAGEMENT: Int = 84
+        const val FRIENDS_LIST: Int = 85
         const val LOGOUT: Int = 86
         const val SETTINGS: Int = 87
         const val EMOTES: Int = 88
@@ -46,8 +46,8 @@ internal object GameframeLayout {
         const val PRAYER: Int = 541
         const val SPELLBOOK: Int = 218
         const val FRIENDS_CHAT: Int = 7
-        const val FRIENDS_LIST: Int = 429
         const val ACCOUNT_MANAGEMENT: Int = 109
+        const val FRIENDS_LIST: Int = 429
         const val LOGOUT: Int = 182
         const val SETTINGS: Int = 116
         const val EMOTES: Int = 216
