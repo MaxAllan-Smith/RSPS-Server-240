@@ -2,12 +2,15 @@ package org.example.app.features.combat
 
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.features.combat.command.CombatCommandHandler
 import org.example.app.features.combat.ui.CombatInterfaceService
 import org.example.app.features.combat.weapon.CombatEquipmentService
-import org.example.app.features.combat.weapon.CombatItemDefinitions
 
-internal class CombatFeature : Feature {
+internal class CombatFeature(
+    itemDefinitions:
+        ItemDefinitionRepository,
+) : Feature {
 
     private val interfaceService =
         CombatInterfaceService()
@@ -15,7 +18,7 @@ internal class CombatFeature : Feature {
     private val equipmentService =
         CombatEquipmentService(
             itemDefinitions =
-                CombatItemDefinitions.repository,
+                itemDefinitions,
             interfaceService =
                 interfaceService,
         )
@@ -37,7 +40,9 @@ internal class CombatFeature : Feature {
         )
 
         registrar.beforeInfoUpdate { _, player ->
-            equipmentService.synchronize(player)
+            equipmentService.synchronize(
+                player
+            )
         }
     }
 }

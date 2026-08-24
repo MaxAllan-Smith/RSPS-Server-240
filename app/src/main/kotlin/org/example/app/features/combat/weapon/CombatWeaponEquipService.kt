@@ -5,8 +5,8 @@ import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 
 internal class CombatWeaponEquipService(
-    private val itemDefinitions: ItemDefinitionRepository =
-        CombatItemDefinitions.repository,
+    private val itemDefinitions:
+        ItemDefinitionRepository,
 ) {
 
     fun wield(

@@ -3,6 +3,7 @@ package org.example.app.features.interfaces
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.features.combat.ui.CombatEquipmentHandler
 import org.example.app.features.combat.ui.CombatInventoryHandler
 import org.example.app.features.combat.ui.CombatOptionsHandler
@@ -14,18 +15,23 @@ import org.example.app.features.interfaces.worldswitcher.WorldSwitcherHandler
 import org.example.app.features.skills.guide.SkillGuideHandler
 
 internal class InterfaceFeature(
-    private val gameframeService: GameframeService =
+    itemDefinitions:
+        ItemDefinitionRepository,
+    private val gameframeService:
+        GameframeService =
         GameframeService(),
 ) : Feature {
 
     private val journalTabHandler =
         JournalTabHandler(
-            gameframeService = gameframeService,
+            gameframeService =
+                gameframeService,
         )
 
     private val socialTabHandler =
         SocialTabHandler(
-            gameframeService = gameframeService,
+            gameframeService =
+                gameframeService,
         )
 
     private val logoutHandler =
@@ -33,7 +39,8 @@ internal class InterfaceFeature(
 
     private val worldSwitcherHandler =
         WorldSwitcherHandler(
-            gameframeService = gameframeService,
+            gameframeService =
+                gameframeService,
         )
 
     private val skillGuideHandler =
@@ -43,13 +50,22 @@ internal class InterfaceFeature(
         CombatOptionsHandler()
 
     private val combatInventoryHandler =
-        CombatInventoryHandler()
+        CombatInventoryHandler(
+            itemDefinitions =
+                itemDefinitions,
+        )
 
     private val combatEquipmentHandler =
-        CombatEquipmentHandler()
+        CombatEquipmentHandler(
+            itemDefinitions =
+                itemDefinitions,
+        )
 
     private val equipmentInteractionSyncService =
-        EquipmentInteractionSyncService()
+        EquipmentInteractionSyncService(
+            itemDefinitions =
+                itemDefinitions,
+        )
 
     override val id: String =
         "interfaces"
@@ -114,7 +130,10 @@ internal class InterfaceFeature(
         registrar.beforeInfoUpdate(
             priority = INTERFACE_PRIORITY,
         ) { _, player ->
-            gameframeService.mountInitialLayout(player)
+            gameframeService
+                .mountInitialLayout(
+                    player
+                )
         }
     }
 

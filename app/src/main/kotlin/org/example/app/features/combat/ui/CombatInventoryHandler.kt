@@ -2,12 +2,18 @@ package org.example.app.features.combat.ui
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.inventory.PlayerInventory
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.features.combat.weapon.CombatWeaponEquipService
 
 internal class CombatInventoryHandler(
-    private val equipService: CombatWeaponEquipService =
-        CombatWeaponEquipService(),
+    itemDefinitions:
+        ItemDefinitionRepository,
+    private val equipService:
+        CombatWeaponEquipService =
+        CombatWeaponEquipService(
+            itemDefinitions
+        ),
 ) {
 
     fun handle(

@@ -1,6 +1,7 @@
 package org.example.app.core.engine
 
 import net.rsprot.protocol.api.NetworkService
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.persistence.PlayerPersistenceRepository
 import org.example.app.core.player.Player
 import org.example.app.core.player.PlayerManager
@@ -10,13 +11,14 @@ import java.nio.file.Path
 /**
  * Runtime services exposed to feature hooks.
  *
- * Add generic server capabilities here only when they are truly cross-cutting.
- * Feature-to-feature APIs should remain in their owning feature packages.
+ * Add generic server capabilities here only when they are truly
+ * cross-cutting.
  */
 data class GameContext(
     val networkService: NetworkService<Player>,
     val players: PlayerManager,
     val varbits: VarbitDefinitionRepository,
     val persistence: PlayerPersistenceRepository,
+    val itemDefinitions: ItemDefinitionRepository,
     val cacheDirectory: Path,
 )

@@ -10,17 +10,23 @@ import org.example.app.core.server.ServerApplication
 import org.example.app.features.FeatureCatalog
 
 fun main() {
-    val config = ServerConfig.load()
+    val config =
+        ServerConfig.load()
 
-    printBanner(config)
+    printBanner(
+        config
+    )
 
     ServerApplication(
         config = config,
-        features = FeatureCatalog.all,
+        featureFactory =
+            FeatureCatalog::create,
     ).run()
 }
 
-private fun printBanner(config: ServerConfig) {
+private fun printBanner(
+    config: ServerConfig,
+) {
     println(
         """
         ======================================

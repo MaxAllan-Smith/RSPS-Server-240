@@ -1,11 +1,21 @@
 package org.example.app.core.server
 
-import org.example.app.core.cache.*
+import org.example.app.core.cache.CacheBootstrap
+import org.example.app.core.cache.CacheTarget
+import org.example.app.core.cache.HuffmanLoader
+import org.example.app.core.cache.OpenRs2ArchiveClient
+import org.example.app.core.cache.PreparedCache
+import org.example.app.core.cache.RsProtJs5Provider
 import org.example.app.core.config.ServerConfig
 import org.example.app.core.engine.GameContext
 import org.example.app.core.engine.GameEngine
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistry
+import org.example.app.core.items.ItemDefinitionRepository
+import org.example.app.core.items.SqliteItemDefinitionSource
+import org.example.app.core.items.wiki.WikiItemDataClient
+import org.example.app.core.items.wiki.WikiItemDataRepository
+import org.example.app.core.items.wiki.WikiItemDataWorker
 import org.example.app.core.network.RsProtNetworkFactory
 import org.example.app.core.persistence.PlayerPersistenceRepository
 import org.example.app.core.persistence.SqliteDatabase
@@ -19,22 +29,22 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * Application lifecycle/composition boundary.
  *
- * The core receives [Feature] implementations but never imports concrete
- * features. Adding or removing features only changes FeatureCatalog.
+ * Core receives a feature factory but never imports concrete
+ * feature implementations.
  */
 class ServerApplication(
     private val config: ServerConfig,
-    private val features: List<Feature>,
+    private val featureFactory:
+        (ItemDefinitionRepository) ->
+            List<Feature>,
 ) {
+
     private val shuttingDown =
         AtomicBoolean(false)
 
     private val shutdownLatch =
         CountDownLatch(1)
 
-    /**
-     * Keep RSProt experimental API opt-ins scoped to the application boundary.
-     */
     @OptIn(
         ExperimentalUnsignedTypes::class,
         ExperimentalStdlibApi::class,
@@ -56,6 +66,29 @@ class ServerApplication(
                 database = database,
             )
 
+        val itemDefinitions =
+            ItemDefinitionRepository(
+                source =
+                    SqliteItemDefinitionSource(
+                        database = database,
+                    ),
+            )
+
+        val wikiItemDataWorker =
+            WikiItemDataWorker(
+                client =
+                    WikiItemDataClient(
+                        baseUrl =
+                            WIKI_ITEM_API_BASE,
+                        userAgent =
+                            WIKI_USER_AGENT,
+                    ),
+                repository =
+                    WikiItemDataRepository(
+                        database = database,
+                    ),
+            )
+
         val huffman =
             HuffmanLoader.load(
                 cache.directory
@@ -67,6 +100,11 @@ class ServerApplication(
             )
 
         try {
+            val features =
+                featureFactory(
+                    itemDefinitions
+                )
+
             val featureRuntime =
                 FeatureRegistry()
                     .install(
@@ -112,6 +150,8 @@ class ServerApplication(
                         varbitDefinitions,
                     persistence =
                         persistence,
+                    itemDefinitions =
+                        itemDefinitions,
                     cacheDirectory =
                         cache.directory,
                 )
@@ -135,7 +175,13 @@ class ServerApplication(
 
                 networkService.start()
                 engine.start()
+
+                wikiItemDataWorker.start()
             } catch (t: Throwable) {
+                runCatching {
+                    wikiItemDataWorker.close()
+                }
+
                 runCatching {
                     engine.close()
                 }
@@ -152,6 +198,8 @@ class ServerApplication(
                 networkShutdown =
                     networkService::shutdownNow,
                 js5Provider = js5,
+                wikiItemDataWorker =
+                    wikiItemDataWorker,
             )
 
             printOnlineSummary(
@@ -164,6 +212,10 @@ class ServerApplication(
 
             shutdownLatch.await()
         } catch (t: Throwable) {
+            runCatching {
+                wikiItemDataWorker.close()
+            }
+
             js5.close()
 
             throw t
@@ -217,6 +269,8 @@ class ServerApplication(
         gameEngine: GameEngine,
         networkShutdown: () -> Unit,
         js5Provider: RsProtJs5Provider,
+        wikiItemDataWorker:
+            WikiItemDataWorker,
     ) {
         Runtime
             .getRuntime()
@@ -238,6 +292,8 @@ class ServerApplication(
                         )
 
                         try {
+                            wikiItemDataWorker.close()
+
                             gameEngine.close()
                         } finally {
                             js5Provider.use {
@@ -278,5 +334,17 @@ class ServerApplication(
             ======================================
             """.trimIndent()
         )
+    }
+
+    private companion object {
+        const val WIKI_ITEM_API_BASE: String =
+            "https://prices.runescape.wiki/api/v1/osrs"
+
+        /*
+         * The RuneScape Wiki explicitly asks automated clients to
+         * send a descriptive User-Agent.
+         */
+        const val WIKI_USER_AGENT: String =
+            "RSPS_RSProt_Server item-data-sync"
     }
 }
