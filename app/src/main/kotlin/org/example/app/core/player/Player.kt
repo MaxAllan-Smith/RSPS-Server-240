@@ -4,6 +4,7 @@ import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
 import org.example.app.core.equipment.PlayerEquipment
 import org.example.app.core.feature.FeatureStateStore
+import org.example.app.core.inventory.PlayerInventory
 import org.example.app.core.skills.PlayerSkills
 import org.example.app.core.vars.PlayerVars
 import org.example.app.core.vars.VarbitDefinitionRepository
@@ -14,9 +15,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Feature-specific state belongs in [featureState], not as fields here.
  *
- * Generic RuneScape player capabilities, such as vars/varbits, skills and
- * equipment, belong directly on the player because they are shared
- * infrastructure used by many features.
+ * Generic RuneScape player capabilities, such as vars/varbits, skills,
+ * inventory and equipment, belong directly on the player because they are
+ * shared infrastructure used by many features.
  */
 class Player(
     val username: String,
@@ -44,6 +45,9 @@ class Player(
 
     val skills =
         PlayerSkills()
+
+    val inventory =
+        PlayerInventory()
 
     val equipment =
         PlayerEquipment()
