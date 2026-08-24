@@ -1,16 +1,30 @@
 package org.example.app.features.combat.weapon
 
+import org.example.app.features.combat.model.CombatWeaponCategory
+
 internal class CombatWeaponRepository(
-    definitions: Iterable<CombatWeaponDefinition>,
+    definitions: Iterable<CombatWeaponDefinition> =
+        DEFAULT_DEFINITIONS,
 ) {
 
     private val definitionsByItem =
         definitions.associateBy(
-            CombatWeaponDefinition::itemId
+            CombatWeaponDefinition::itemId,
         )
 
     fun find(
         itemId: Int,
     ): CombatWeaponDefinition? =
         definitionsByItem[itemId]
+
+    private companion object {
+
+        val DEFAULT_DEFINITIONS =
+            listOf(
+                CombatWeaponDefinition(
+                    itemId = 1351,
+                    category = CombatWeaponCategory.AXE,
+                ),
+            )
+    }
 }
