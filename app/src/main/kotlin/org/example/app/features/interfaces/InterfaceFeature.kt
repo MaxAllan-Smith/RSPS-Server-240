@@ -3,6 +3,7 @@ package org.example.app.features.interfaces
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.features.combat.ui.CombatEquipmentHandler
 import org.example.app.features.combat.ui.CombatInventoryHandler
 import org.example.app.features.combat.ui.CombatOptionsHandler
 import org.example.app.features.interfaces.gameframe.GameframeService
@@ -43,6 +44,9 @@ internal class InterfaceFeature(
 
     private val combatInventoryHandler =
         CombatInventoryHandler()
+
+    private val combatEquipmentHandler =
+        CombatEquipmentHandler()
 
     override val id: String =
         "interfaces"
@@ -86,6 +90,11 @@ internal class InterfaceFeature(
                     player = this,
                     packet = packet,
                 )
+
+                combatEquipmentHandler.handle(
+                    player = this,
+                    packet = packet,
+                )
             }
         }
 
@@ -97,6 +106,7 @@ internal class InterfaceFeature(
     }
 
     private companion object {
-        const val INTERFACE_PRIORITY: Int = 100
+        const val INTERFACE_PRIORITY: Int =
+            100
     }
 }
