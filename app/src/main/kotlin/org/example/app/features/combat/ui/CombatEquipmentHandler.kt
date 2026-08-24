@@ -1,6 +1,7 @@
 package org.example.app.features.combat.ui
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import org.example.app.core.equipment.EquipmentSlot
 import org.example.app.core.player.Player
 import org.example.app.features.combat.weapon.CombatWeaponEquipService
 
@@ -21,7 +22,16 @@ internal class CombatEquipmentHandler(
             return
         }
 
-        equipService.unequip(player)
+        val equippedWeapon =
+            player.equipment[
+                EquipmentSlot.WEAPON
+            ]
+                ?: return
+
+        equipService.unequip(
+            player = player,
+            itemId = equippedWeapon.id,
+        )
     }
 
     private companion object {

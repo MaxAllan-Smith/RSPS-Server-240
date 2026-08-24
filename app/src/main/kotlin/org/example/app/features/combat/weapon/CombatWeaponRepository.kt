@@ -1,5 +1,6 @@
 package org.example.app.features.combat.weapon
 
+import org.example.app.core.equipment.EquipmentSlot
 import org.example.app.features.combat.model.CombatWeaponCategory
 
 internal class CombatWeaponRepository(
@@ -24,6 +25,7 @@ internal class CombatWeaponRepository(
                 CombatWeaponDefinition(
                     itemId = 1351,
                     category = CombatWeaponCategory.AXE,
+                    equipmentSlot = EquipmentSlot.WEAPON,
                 ),
             )
     }

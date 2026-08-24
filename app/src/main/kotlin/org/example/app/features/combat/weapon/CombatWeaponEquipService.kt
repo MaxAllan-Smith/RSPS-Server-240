@@ -1,6 +1,5 @@
 package org.example.app.features.combat.weapon
 
-import org.example.app.core.equipment.EquipmentSlot
 import org.example.app.core.player.Player
 
 internal class CombatWeaponEquipService(
@@ -27,7 +26,12 @@ internal class CombatWeaponEquipService(
             return false
         }
 
-        if (weaponRepository.find(item.id) == null) {
+        val definition =
+            weaponRepository.find(
+                item.id,
+            )
+
+        if (definition == null) {
             println(
                 "[Combat] '${player.username}' cannot wield " +
                     "unsupported weapon item=${item.id}."
@@ -38,7 +42,7 @@ internal class CombatWeaponEquipService(
 
         val previous =
             player.equipment.set(
-                slot = EquipmentSlot.WEAPON,
+                slot = definition.equipmentSlot,
                 item = item,
             )
 
@@ -57,12 +61,23 @@ internal class CombatWeaponEquipService(
 
     fun unequip(
         player: Player,
+        itemId: Int,
     ): Boolean {
+        val definition =
+            weaponRepository.find(
+                itemId,
+            )
+                ?: return false
+
         val item =
             player.equipment[
-                EquipmentSlot.WEAPON
+                definition.equipmentSlot
             ]
                 ?: return false
+
+        if (item.id != itemId) {
+            return false
+        }
 
         if (!player.inventory.add(item)) {
             println(
@@ -74,7 +89,7 @@ internal class CombatWeaponEquipService(
         }
 
         player.equipment.clear(
-            EquipmentSlot.WEAPON,
+            definition.equipmentSlot,
         )
 
         println(
