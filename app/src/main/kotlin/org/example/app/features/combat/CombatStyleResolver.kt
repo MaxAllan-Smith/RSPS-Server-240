@@ -21,6 +21,9 @@ internal object CombatStyleResolver {
         category: CombatWeaponCategory,
     ): CombatWeaponCategoryDefinition? =
         when (category) {
+            CombatWeaponCategory.UNARMED ->
+                CombatWeaponCategories.UNARMED
+
             CombatWeaponCategory.AXE ->
                 CombatWeaponCategories.AXE
 
