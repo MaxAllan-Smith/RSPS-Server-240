@@ -41,20 +41,26 @@ internal class CombatWeaponEquipService(
             return false
         }
 
-        val attackLevel =
-            player.skills.baseLevel(
-                Skill.ATTACK,
-            )
+        val unmetRequirement =
+            definition.skillRequirements
+                .firstOrNull { requirement ->
+                    player.skills.baseLevel(
+                        requirement.skill,
+                    ) < requirement.level
+                }
 
-        if (
-            attackLevel <
-                definition.attackLevelRequirement
-        ) {
+        if (unmetRequirement != null) {
+            val playerLevel =
+                player.skills.baseLevel(
+                    unmetRequirement.skill,
+                )
+
             println(
                 "[Combat] '${player.username}' cannot wield " +
-                    "item=${item.id}; requires Attack " +
-                    "${definition.attackLevelRequirement}, " +
-                    "player has $attackLevel."
+                    "item=${item.id}; requires " +
+                    "${unmetRequirement.skill.displayName} " +
+                    "${unmetRequirement.level}, " +
+                    "player has $playerLevel."
             )
 
             return false
@@ -119,4 +125,10 @@ internal class CombatWeaponEquipService(
 
         return true
     }
+
+    private val Skill.displayName: String
+        get() =
+            name
+                .lowercase()
+                .replaceFirstChar(Char::uppercase)
 }
