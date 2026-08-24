@@ -27,6 +27,11 @@ internal class CombatWeaponRepository(
                     category = CombatWeaponCategory.AXE,
                     equipmentSlot = EquipmentSlot.WEAPON,
                 ),
+                CombatWeaponDefinition(
+                    itemId = 4151,
+                    category = CombatWeaponCategory.WHIP,
+                    equipmentSlot = EquipmentSlot.WEAPON,
+                ),
             )
     }
 }

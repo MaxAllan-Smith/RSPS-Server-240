@@ -16,5 +16,8 @@ internal value class CombatWeaponCategory(
 
         val AXE =
             CombatWeaponCategory(1)
+
+        val WHIP =
+            CombatWeaponCategory(20)
     }
 }
