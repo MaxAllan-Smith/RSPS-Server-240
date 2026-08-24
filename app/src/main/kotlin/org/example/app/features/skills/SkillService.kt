@@ -4,6 +4,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
+import org.example.app.features.skills.levelup.SkillLevelUpService
 
 internal class SkillService(
     private val levelUpService: SkillLevelUpService,

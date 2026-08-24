@@ -1,4 +1,4 @@
-package org.example.app.features.skills
+package org.example.app.features.skills.levelup
 
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.game.outgoing.interfaces.IfCloseSub

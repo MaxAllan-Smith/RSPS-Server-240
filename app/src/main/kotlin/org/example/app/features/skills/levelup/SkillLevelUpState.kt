@@ -1,4 +1,4 @@
-package org.example.app.features.skills
+package org.example.app.features.skills.levelup
 
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill

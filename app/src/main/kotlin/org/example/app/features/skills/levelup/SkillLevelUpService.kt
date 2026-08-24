@@ -1,4 +1,4 @@
-package org.example.app.features.skills
+package org.example.app.features.skills.levelup
 
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
@@ -9,6 +9,7 @@ import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
 import org.example.app.core.skills.SkillExperience
+import org.example.app.features.skills.levelup.skillLevelUpState
 import org.example.app.features.skills.unlocks.SkillUnlockService
 
 internal class SkillLevelUpService(

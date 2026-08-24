@@ -1,9 +1,10 @@
-package org.example.app.features.skills
+package org.example.app.features.skills.commands
 
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import org.example.app.core.player.Player
 import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
+import org.example.app.features.skills.SkillService
 
 internal class SkillCommandHandler(
     private val skillService: SkillService,

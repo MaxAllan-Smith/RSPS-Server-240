@@ -8,7 +8,7 @@ import org.example.app.features.interfaces.journal.JournalTabHandler
 import org.example.app.features.interfaces.logout.LogoutHandler
 import org.example.app.features.interfaces.social.SocialTabHandler
 import org.example.app.features.interfaces.worldswitcher.WorldSwitcherHandler
-import org.example.app.features.skills.SkillGuideHandler
+import org.example.app.features.skills.guide.SkillGuideHandler
 
 internal class InterfaceFeature(
     private val gameframeService: GameframeService =

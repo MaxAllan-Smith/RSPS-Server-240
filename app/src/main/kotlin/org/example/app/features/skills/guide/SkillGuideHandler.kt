@@ -1,4 +1,4 @@
-package org.example.app.features.skills
+package org.example.app.features.skills.guide
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.outgoing.interfaces.IfCloseSub
@@ -7,6 +7,7 @@ import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
+import org.example.app.features.skills.levelup.skillLevelUpState
 
 internal class SkillGuideHandler {
 

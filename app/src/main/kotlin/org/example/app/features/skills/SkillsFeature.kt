@@ -5,6 +5,9 @@ import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import org.example.app.core.engine.GameContext
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.features.skills.commands.SkillCommandHandler
+import org.example.app.features.skills.levelup.SkillLevelUpHandler
+import org.example.app.features.skills.levelup.SkillLevelUpService
 import org.example.app.features.skills.unlocks.SkillUnlockLoader
 import org.example.app.features.skills.unlocks.SkillUnlockService
 
