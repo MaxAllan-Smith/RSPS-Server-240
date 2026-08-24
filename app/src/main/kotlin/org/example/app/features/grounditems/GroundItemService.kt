@@ -1,7 +1,9 @@
 package org.example.app.features.grounditems
 
+import net.rsprot.protocol.api.util.ZonePartialEnclosedCacheBuffer
+import net.rsprot.protocol.common.client.OldSchoolClientType
 import net.rsprot.protocol.game.outgoing.util.OpFlags
-import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialFollows
+import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjDel
 import net.rsprot.protocol.message.ZoneProt
@@ -27,8 +29,8 @@ import java.util.ArrayDeque
  *     -> pickup OR expiry
  *     -> removed
  *
- * All expired items are physically removed from this repository, so the
- * garbage collector does not leave dead entries accumulating in memory.
+ * Expired items are physically removed from [groundItems], so dead entries do
+ * not accumulate in memory.
  */
 internal class GroundItemService(
     private val config: GroundItemConfig,
@@ -41,28 +43,31 @@ internal class GroundItemService(
         LinkedHashMap<Long, GroundItem>()
 
     /**
-     * Drops originate from an incoming network packet, where GameContext is
-     * intentionally unavailable.
+     * Incoming inventory interactions do not receive GameContext directly.
      *
-     * They are therefore staged here and committed during the next game cycle.
+     * Drops are therefore staged here and committed during the next game
+     * cycle, where all nearby players can be synchronized safely.
      */
     private val pendingDrops =
         ArrayDeque<PendingGroundItemDrop>()
 
     /**
-     * Pickups logically remove an item immediately.
+     * Pickups remove their authoritative ground-item entry immediately.
      *
-     * The corresponding ObjDel broadcast is staged until the next game cycle,
+     * The visual ObjDel broadcast is staged here until the next game cycle,
      * where GameContext is available.
      */
     private val pendingRemovals =
         ArrayDeque<GroundItem>()
 
+    /**
+     * Unique runtime identity for every individual floor stack.
+     */
     private var nextUid: Long =
         1L
 
     /**
-     * Stages an inventory item to appear on the floor.
+     * Stages an inventory item to become a world ground item.
      */
     fun drop(
         item: ItemStack,
@@ -77,16 +82,15 @@ internal class GroundItemService(
     }
 
     /**
-     * Attempts to remove one matching ground item for collection.
+     * Attempts to collect one matching ground item.
      *
-     * Matching is intentionally server-side:
+     * Matching is entirely server-authoritative:
      *
-     * - item id must match;
-     * - absolute world coordinate must match;
-     * - level must match.
+     * - item id;
+     * - exact absolute coordinate;
+     * - height level.
      *
-     * The client is never trusted to manufacture an item that does not exist in
-     * this repository.
+     * A malicious client cannot invent an item merely by sending OpObjV2.
      */
     fun take(
         itemId: Int,
@@ -114,46 +118,41 @@ internal class GroundItemService(
     }
 
     /**
-     * Advances all ground-item world state once per 600ms game cycle.
+     * Advances the complete ground-item lifecycle once per 600ms game cycle.
      */
     fun cycle(
         context: GameContext,
     ) {
         /*
-         * 1. Broadcast items picked up since the previous game cycle.
+         * First remove items collected during packet processing.
          */
         flushPendingRemovals(
-            context
+            context = context,
         )
 
         /*
-         * 2. Age existing items and garbage-collect expired entries.
+         * Then age and garbage-collect existing world items.
          */
         expireGroundItems(
-            context
+            context = context,
         )
 
         /*
-         * 3. Commit new drops.
+         * Finally spawn newly-dropped items.
          *
-         * Doing this after the timer pass means a newly-spawned item receives
-         * its complete configured lifetime rather than losing one tick before
-         * it has even appeared client-side.
+         * Doing this last prevents a new item from immediately losing one tick
+         * of its configured lifetime during the cycle in which it appears.
          */
         flushPendingDrops(
-            context
+            context = context,
         )
     }
 
     /**
-     * Sends all currently-live ground items when the player's loaded scene
-     * changes.
+     * Resends active ground items after login or a scene rebuild.
      *
-     * This handles:
-     *
-     * - login near an existing ground item;
-     * - normal scene rebuilds;
-     * - walking into an area containing an existing item.
+     * Without this, a player entering an area after an item was already dropped
+     * would not know that item exists.
      */
     fun synchronize(
         player: Player,
@@ -172,6 +171,12 @@ internal class GroundItemService(
         val state =
             player.groundItemSyncState
 
+        /*
+         * Direct broadcasts handle changes while the player remains in the
+         * same scene.
+         *
+         * A full resend is only needed when their scene itself changes.
+         */
         if (
             state.initialized &&
             state.baseZoneX ==
@@ -212,7 +217,7 @@ internal class GroundItemService(
     }
 
     /**
-     * Converts pending network-side drops into actual world objects.
+     * Converts staged inventory drops into authoritative world objects.
      */
     private fun flushPendingDrops(
         context: GameContext,
@@ -262,7 +267,7 @@ internal class GroundItemService(
     }
 
     /**
-     * Broadcasts items that have been collected since the previous cycle.
+     * Broadcasts world removals for items collected since the previous cycle.
      */
     private fun flushPendingRemovals(
         context: GameContext,
@@ -282,10 +287,15 @@ internal class GroundItemService(
     }
 
     /**
-     * Garbage collector.
+     * Ground-item garbage collector.
      *
-     * Entries are removed from [groundItems] once their lifetime reaches zero,
-     * then ObjDel is broadcast to every player currently viewing the tile.
+     * Every active item loses one lifetime tick per server cycle.
+     *
+     * Once it reaches zero:
+     *
+     * - remove it from authoritative server memory;
+     * - broadcast ObjDel to nearby players;
+     * - leave no stale entry behind.
      */
     private fun expireGroundItems(
         context: GameContext,
@@ -338,6 +348,10 @@ internal class GroundItemService(
         }
     }
 
+    /**
+     * Shows a newly-created ground item to every player whose current scene
+     * contains it.
+     */
     private fun broadcastAdd(
         context: GameContext,
         groundItem: GroundItem,
@@ -365,6 +379,9 @@ internal class GroundItemService(
         }
     }
 
+    /**
+     * Removes a ground item from every player currently viewing it.
+     */
     private fun broadcastDelete(
         context: GameContext,
         groundItem: GroundItem,
@@ -393,16 +410,18 @@ internal class GroundItemService(
     }
 
     /**
-     * ObjAdd creates one ground object.
+     * Creates an ObjAdd payload for this item.
      *
-     * Only operation 1 is enabled, which is the normal Take operation.
+     * Revision 240 requires ObjAdd to be encoded inside
+     * UpdateZonePartialEnclosed. It cannot be sent as a standalone zone packet.
      */
     private fun queueAdd(
         player: Player,
         groundItem: GroundItem,
     ) {
-        queueZonePayload(
+        queueEnclosedZonePayload(
             player = player,
+
             position =
                 groundItem.position,
 
@@ -422,6 +441,11 @@ internal class GroundItemService(
                         groundItem.position.z and
                             ZONE_MASK,
 
+                    /*
+                     * Only floor-item operation 1 is enabled.
+                     *
+                     * That is the normal Take operation.
+                     */
                     opFlags =
                         TAKE_ONLY_OP_FLAGS,
                 ),
@@ -429,15 +453,20 @@ internal class GroundItemService(
     }
 
     /**
-     * ObjDel requires the same item id AND quantity as the existing client
-     * object.
+     * Creates an ObjDel payload for this item.
+     *
+     * ObjDel also must be encoded inside UpdateZonePartialEnclosed on revision
+     * 240.
+     *
+     * The id and quantity must match the existing client-side floor object.
      */
     private fun queueDelete(
         player: Player,
         groundItem: GroundItem,
     ) {
-        queueZonePayload(
+        queueEnclosedZonePayload(
             player = player,
+
             position =
                 groundItem.position,
 
@@ -461,9 +490,16 @@ internal class GroundItemService(
     }
 
     /**
-     * Positions the client's zone pointer before sending a normal zone payload.
+     * Encodes one revision-240 zone payload into UpdateZonePartialEnclosed.
+     *
+     * RSProt explicitly rejects ObjAdd and ObjDel when they are submitted
+     * directly to Session.queue().
+     *
+     * ZonePartialEnclosedCacheBuffer performs RSProt's own revision-specific
+     * encoding. We therefore do not manually reproduce client opcodes or byte
+     * transforms here.
      */
-    private fun queueZonePayload(
+    private fun queueEnclosedZonePayload(
         player: Player,
         position: WorldPosition,
         payload: ZoneProt,
@@ -475,27 +511,65 @@ internal class GroundItemService(
             )
                 ?: return
 
-        player.session.queue(
-            UpdateZonePartialFollows(
-                zoneX =
-                    localZone.x,
-
-                zoneZ =
-                    localZone.z,
-
-                level =
-                    position.level,
+        /*
+         * This server currently advertises Desktop as its supported client
+         * type, matching NetworkService startup.
+         */
+        val cache =
+            ZonePartialEnclosedCacheBuffer(
+                supportedClients =
+                    listOf(
+                        OldSchoolClientType.DESKTOP
+                    )
             )
-        )
+
+        val encodedPayload =
+            cache.computeZoneForClient(
+                client =
+                    OldSchoolClientType.DESKTOP,
+
+                pendingTickProtList =
+                    listOf(
+                        payload
+                    ),
+            )
+
+        /*
+         * UpdateZonePartialEnclosed retains the supplied ByteBuf.
+         *
+         * Release our original reference after the packet wrapper has retained
+         * its own reference.
+         */
+        val message =
+            try {
+                UpdateZonePartialEnclosed(
+                    zoneX =
+                        localZone.x,
+
+                    zoneZ =
+                        localZone.z,
+
+                    level =
+                        position.level,
+
+                    payload =
+                        encodedPayload,
+                )
+            } finally {
+                encodedPayload.release()
+            }
 
         player.session.queue(
-            payload
+            message
         )
     }
 
     /**
-     * Converts an absolute world zone to coordinates relative to the player's
-     * currently-loaded scene.
+     * Converts the absolute world zone containing [position] into the
+     * south-western tile coordinate relative to the player's loaded build area.
+     *
+     * UpdateZonePartialEnclosed expects this absolute-within-build-area form,
+     * not shifted zone indices.
      */
     private fun localZone(
         player: Player,
@@ -540,8 +614,8 @@ internal class GroundItemService(
     }
 
     /**
-     * Whether this absolute coordinate is inside the player's active 104x104
-     * static build area.
+     * Returns whether this absolute world coordinate currently belongs to the
+     * player's loaded 104x104 scene.
      */
     private fun isVisible(
         player: Player,
@@ -589,60 +663,80 @@ internal class GroundItemService(
             )
     }
 
+    /**
+     * Drop waiting to be committed into shared world state.
+     */
     private data class PendingGroundItemDrop(
         val item: ItemStack,
         val position: WorldPosition,
     )
 
+    /**
+     * South-western coordinate of one 8x8 zone relative to the player's
+     * current build area.
+     */
     private data class LocalZone(
         val x: Int,
         val z: Int,
     )
 
     private companion object {
+
+        /**
+         * 8 tiles per zone.
+         */
         const val ZONE_SHIFT: Int =
             3
 
+        /**
+         * Extracts a tile's 0..7 position within its current zone.
+         */
         const val ZONE_MASK: Int =
             7
 
-        /*
-         * Clear the lowest three coordinate bits to obtain the south-west tile
-         * of an 8x8 zone.
+        /**
+         * Clears the bottom three coordinate bits, producing the south-west
+         * tile of the containing 8x8 zone.
          */
         const val ZONE_TILE_MASK: Int =
             -8
 
+        /**
+         * Normal OSRS static scene size.
+         */
         const val BUILD_AREA_SIZE: Int =
             104
 
         /**
-         * Floor objects should expose only Take at this stage.
-         *
-         * RSProt's flags represent op1..op5 as bit flags.
+         * Only operation 1 should be available on spawned floor objects.
          */
         val TAKE_ONLY_OP_FLAGS: Byte =
             OpFlags.ofOps(
-                true,
-                false,
-                false,
-                false,
-                false,
+                op1 = true,
+                op2 = false,
+                op3 = false,
+                op4 = false,
+                op5 = false,
             )
     }
 }
 
 /**
- * Tracks the last scene into which active ground items were synchronized.
+ * Tracks the scene into which currently-live ground items were last
+ * synchronized.
  *
- * Item additions/removals inside an unchanged scene are handled by direct
- * broadcasts, so we only need to resend the complete collection after a scene
- * transition.
+ * While the scene remains unchanged, add/delete broadcasts keep the player
+ * current. When a rebuild occurs, all active ground items are resent.
  */
 private data class GroundItemSyncState(
-    var initialized: Boolean = false,
-    var baseZoneX: Int? = null,
-    var baseZoneZ: Int? = null,
+    var initialized: Boolean =
+        false,
+
+    var baseZoneX: Int? =
+        null,
+
+    var baseZoneZ: Int? =
+        null,
 )
 
 private val Player.groundItemSyncState:
