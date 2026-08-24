@@ -6,6 +6,15 @@ internal class SkillUnlockRepository(
     private val levelsBySkill: Map<Int, Set<Int>>,
 ) {
 
+    val skillCount: Int
+        get() =
+            levelsBySkill.size
+
+    val unlockLevelCount: Int
+        get() =
+            levelsBySkill.values
+                .sumOf(Set<Int>::size)
+
     fun hasUnlocks(
         skill: Skill,
         firstLevel: Int,
