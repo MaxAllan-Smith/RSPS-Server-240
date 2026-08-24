@@ -12,18 +12,17 @@ import kotlin.math.abs
 import kotlin.math.max
 
 /**
- * Generic inventory-drop and ground-item lifecycle feature.
+ * Generic inventory-drop and ground-item interaction feature.
  *
- * This feature owns:
+ * Responsibilities:
  *
- * - dropping inventory items;
- * - spawning them into the world;
- * - collecting nearby ground items;
- * - synchronizing existing items after scene changes;
- * - garbage-collecting expired floor items.
+ * - inventory Drop;
+ * - ground-item Take;
+ * - ground-item garbage collection;
+ * - scene synchronization.
  *
- * Item-specific gameplay such as eating, equipping, lighting or fletching does
- * not belong here.
+ * Item-specific actions such as eating, wielding, lighting and fletching are
+ * intentionally handled by their respective gameplay features.
  */
 internal class GroundItemFeature(
     private val groundItems:
@@ -37,11 +36,13 @@ internal class GroundItemFeature(
         registrar: FeatureRegistrar,
     ) {
         registrar.packets {
+
             /*
-             * If3Button already has a specific consumer for equipment.
+             * If3Button already has a specific listener elsewhere for equipment
+             * interactions.
              *
-             * RSProt allows only one specific consumer per message class, so
-             * inventory Drop is observed through a global consumer instead.
+             * Global packet observation allows us to process Drop without
+             * replacing that existing listener.
              */
             addGlobalListener { player, message ->
                 if (
@@ -56,7 +57,7 @@ internal class GroundItemFeature(
             }
 
             /*
-             * Floor item operation 1 = Take.
+             * Ground object interactions.
              */
             addListener<OpObjV2> { packet ->
                 handleGroundItem(
@@ -67,7 +68,7 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Central garbage collector and pending world updates.
+         * Ground-item timers and pending world changes.
          */
         registrar.onCycleStart(
             priority =
@@ -79,8 +80,7 @@ internal class GroundItemFeature(
         }
 
         /*
-         * WorldBootstrapFeature has already updated worldMapState by the time
-         * this later-priority handler executes.
+         * Resynchronize ground items after login or scene rebuild.
          */
         registrar.beforeInfoUpdate(
             priority =
@@ -93,7 +93,7 @@ internal class GroundItemFeature(
     }
 
     /**
-     * Handles the inventory component's Drop operation.
+     * Handles inventory Drop.
      */
     private fun handleInventoryButton(
         player: Player,
@@ -131,24 +131,24 @@ internal class GroundItemFeature(
             return
         }
 
-        val item =
+        val serverItem =
             player.inventory[
                 slot
             ]
                 ?: return
 
         /*
-         * Never trust the client's claimed object id.
+         * Never trust the item id supplied by the client.
          */
         if (
-            item.id !=
+            serverItem.id !=
             packet.obj
         ) {
             println(
                 "[GroundItems] '${player.username}' rejected drop: " +
                     "slot=$slot, " +
                     "clientItem=${packet.obj}, " +
-                    "serverItem=${item.id}."
+                    "serverItem=${serverItem.id}."
             )
 
             return
@@ -160,11 +160,10 @@ internal class GroundItemFeature(
             )
                 ?: return
 
-        /*
-         * Dropped items appear underneath the player's current world tile.
-         */
         groundItems.drop(
-            item = removed,
+            item =
+                removed,
+
             position =
                 player.position,
         )
@@ -180,11 +179,10 @@ internal class GroundItemFeature(
     }
 
     /**
-     * Collects a nearby ground item.
+     * Handles the standard ground-item Take operation.
      *
-     * Movement-to-item routing is intentionally separate. For this first
-     * implementation the player must already be standing on or adjacent to the
-     * item before Take succeeds.
+     * OSRS item definitions use their third ground-action slot for Take, so
+     * RSProt reports this as operation 3.
      */
     private fun handleGroundItem(
         player: Player,
@@ -209,6 +207,12 @@ internal class GroundItemFeature(
                     player.position.level,
             )
 
+        /*
+         * Full route-to-ground-item behavior will be added later.
+         *
+         * For this stage the player must already be on or adjacent to the
+         * object.
+         */
         if (
             !isInPickupRange(
                 player = player,
@@ -217,8 +221,8 @@ internal class GroundItemFeature(
         ) {
             println(
                 "[GroundItems] '${player.username}' ignored distant Take " +
-                    "item=${packet.id} at " +
-                    "${position.x}," +
+                    "item=${packet.id} " +
+                    "at ${position.x}," +
                     "${position.z}," +
                     "${position.level}."
             )
@@ -245,11 +249,21 @@ internal class GroundItemFeature(
                 position =
                     position,
             )
-                ?: return
+                ?: run {
+                    println(
+                        "[GroundItems] '${player.username}' attempted to take " +
+                            "missing item=${packet.id} " +
+                            "at ${position.x}," +
+                            "${position.z}," +
+                            "${position.level}."
+                    )
+
+                    return
+                }
 
         /*
-         * The free-slot check above and the single game communication thread
-         * make this mutation authoritative.
+         * Because the inventory has already been checked and gameplay state is
+         * serialized through the game thread, the add should succeed.
          */
         check(
             player.inventory.add(
@@ -269,6 +283,9 @@ internal class GroundItemFeature(
         )
     }
 
+    /**
+     * Temporary pickup-distance validation.
+     */
     private fun isInPickupRange(
         player: Player,
         position: WorldPosition,
@@ -302,8 +319,6 @@ internal class GroundItemFeature(
     private companion object {
 
         /**
-         * Revision-240 inventory component currently mounted by this server:
-         *
          * inventory:items = 149:0
          */
         const val INVENTORY_INTERFACE_ID: Int =
@@ -313,32 +328,27 @@ internal class GroundItemFeature(
             0
 
         /**
-         * Current client mapping observed for Drop.
+         * Current revision-240 inventory Drop operation observed from the
+         * client.
          */
         const val DROP_OPERATION: Int =
             7
 
         /**
-         * First floor-item operation = Take.
+         * Ground-item Take occupies the third ground-action slot.
          */
         const val TAKE_OPERATION: Int =
-            1
+            3
 
         /**
-         * Same tile or one surrounding tile.
+         * Same tile or one adjacent tile.
          */
         const val MAXIMUM_PICKUP_DISTANCE: Int =
             1
 
-        /*
-         * Run after general world-state timers.
-         */
         const val GROUND_ITEM_CYCLE_PRIORITY: Int =
             5
 
-        /*
-         * World bootstrap currently runs before this during before-info work.
-         */
         const val GROUND_ITEM_SYNC_PRIORITY: Int =
             20
     }
