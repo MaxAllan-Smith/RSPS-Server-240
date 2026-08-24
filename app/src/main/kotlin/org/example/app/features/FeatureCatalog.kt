@@ -8,39 +8,55 @@ import org.example.app.features.interfaces.InterfaceFeature
 import org.example.app.features.inventory.InventoryFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.movement.MovementFeature
+import org.example.app.features.movement.MovementService
+import org.example.app.features.movement.RoutePlanner
 import org.example.app.features.skills.SkillsFeature
 import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
 
 /**
- * Single composition list for all vertical game features.
+ * Single application composition point for vertical gameplay features.
  *
- * Core networking and the game engine remain independent of concrete
- * gameplay features.
+ * Shared cross-feature services are constructed here and explicitly
+ * injected into the features that consume them.
  */
 object FeatureCatalog {
 
     fun create(
         dependencies: FeatureDependencies,
-    ): List<Feature> =
-        listOf(
+    ): List<Feature> {
+        /*
+         * There must only be one authoritative movement service per
+         * application runtime. Both direct movement packets and gameplay
+         * interactions operate on the same route queue.
+         */
+        val movement =
+            MovementService(
+                planner =
+                    RoutePlanner(
+                        collision =
+                            dependencies.collision,
+                    ),
+            )
+
+        return listOf(
             LoginFeature(),
+
             WorldBootstrapFeature(),
 
-            /*
-             * Movement comes before interactive skills because future
-             * object interactions will use the movement system to reach
-             * their targets.
-             */
             MovementFeature(
-                collision =
-                    dependencies.collision,
+                movement =
+                    movement,
             ),
 
             SkillsFeature(),
+
             InventoryFeature(),
 
-            WoodcuttingFeature(),
+            WoodcuttingFeature(
+                movement =
+                    movement,
+            ),
 
             CombatFeature(
                 itemDefinitions =
@@ -54,4 +70,5 @@ object FeatureCatalog {
 
             ChatFeature(),
         )
+    }
 }

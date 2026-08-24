@@ -4,32 +4,32 @@ import net.rsprot.protocol.game.incoming.misc.user.MoveGameClick
 import net.rsprot.protocol.game.incoming.misc.user.MoveMinimapClick
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
-import org.example.app.core.world.WorldCollision
 
 /**
  * Player walking vertical slice.
  *
- * Incoming clicks replace the current route immediately. RSMod validates the
- * route against server collision; the game cycle then consumes one tile.
+ * Incoming world/minimap clicks replace the player's active route.
+ * Gameplay systems can use the same [MovementService] for interaction
+ * routing, keeping all movement authoritative and collision-aware.
  */
 class MovementFeature(
-    collision: WorldCollision,
+    private val movement: MovementService,
 ) : Feature {
-    private val movement =
-        MovementService(
-            planner = RoutePlanner(collision),
-        )
 
-    override val id: String = "movement"
+    override val id: String =
+        "movement"
 
-    override fun install(registrar: FeatureRegistrar) {
+    override fun install(
+        registrar: FeatureRegistrar,
+    ) {
         registrar.packets {
             addListener<MoveGameClick> { packet ->
                 movement.request(
                     player = this,
                     x = packet.x,
                     z = packet.z,
-                    keyCombination = packet.keyCombination,
+                    keyCombination =
+                        packet.keyCombination,
                 )
             }
 
@@ -38,21 +38,30 @@ class MovementFeature(
                     player = this,
                     x = packet.x,
                     z = packet.z,
-                    keyCombination = packet.keyCombination,
+                    keyCombination =
+                        packet.keyCombination,
                 )
             }
         }
 
-        registrar.onCycleStart(priority = MOVEMENT_PRIORITY) { context ->
-            for (player in context.players.snapshot()) {
+        registrar.onCycleStart(
+            priority = MOVEMENT_PRIORITY,
+        ) { context ->
+            for (
+                player in
+                context.players.snapshot()
+            ) {
                 if (!player.isDisconnected) {
-                    movement.cycle(player)
+                    movement.cycle(
+                        player
+                    )
                 }
             }
         }
     }
 
     private companion object {
-        const val MOVEMENT_PRIORITY = 10
+        const val MOVEMENT_PRIORITY: Int =
+            10
     }
 }

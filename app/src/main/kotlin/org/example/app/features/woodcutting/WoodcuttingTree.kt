@@ -1,15 +1,13 @@
 package org.example.app.features.woodcutting
 
 /**
- * Static metadata describing a tree that can be used by the
- * woodcutting feature.
+ * Static metadata describing a tree supported by Woodcutting.
  *
- * At this stage we only store identifiers that have been verified
- * against revision 240 packet captures.
+ * IDs in this file have been verified directly against revision-240
+ * location interaction packets.
  *
- * Skill requirements, logs, experience, depletion and respawn
- * metadata will be added once their revision-240 values are
- * introduced and verified.
+ * Resource item IDs, XP, requirements, depletion and respawn metadata
+ * will be added incrementally as those mechanics are implemented.
  */
 internal data class WoodcuttingTree(
     val name: String,
@@ -24,9 +22,10 @@ internal data class WoodcuttingTree(
     companion object {
 
         /**
-         * Verified from the revision-240 client:
+         * Revision-240 regular tree variants observed:
          *
-         * oploc1_v2 id=tree (1276)
+         * tree  = 1276
+         * tree2 = 1278
          */
         val REGULAR =
             WoodcuttingTree(
@@ -34,26 +33,45 @@ internal data class WoodcuttingTree(
                 locIds =
                     setOf(
                         1276,
+                        1278,
                     ),
             )
 
         /**
-         * Verified from the revision-240 client:
+         * Revision-240 oak tree observed:
          *
-         * oploc1_v2 id=willow_tree3 (10831)
+         * oaktree = 10820
+         */
+        val OAK =
+            WoodcuttingTree(
+                name = "Oak tree",
+                locIds =
+                    setOf(
+                        10820,
+                    ),
+            )
+
+        /**
+         * Revision-240 willow variants observed:
+         *
+         * willowtree  = 10819
+         * willow_tree3 = 10831
          */
         val WILLOW =
             WoodcuttingTree(
                 name = "Willow tree",
                 locIds =
                     setOf(
+                        10819,
                         10831,
                     ),
             )
 
-        val entries: List<WoodcuttingTree> =
+        val entries:
+            List<WoodcuttingTree> =
             listOf(
                 REGULAR,
+                OAK,
                 WILLOW,
             )
 
@@ -61,7 +79,9 @@ internal data class WoodcuttingTree(
             locId: Int,
         ): WoodcuttingTree? =
             entries.firstOrNull {
-                it.matches(locId)
+                it.matches(
+                    locId
+                )
             }
     }
 }
