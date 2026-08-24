@@ -5,6 +5,7 @@ import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
 import org.example.app.core.equipment.EquipmentSlot
 import org.example.app.core.player.Player
 import org.example.app.features.combat.model.CombatWeaponCategory
+import org.example.app.features.combat.state.combatEquipmentSyncState
 import org.example.app.features.combat.state.combatState
 import org.example.app.features.combat.ui.CombatInterfaceService
 
@@ -13,26 +14,22 @@ internal class CombatEquipmentService(
     private val interfaceService: CombatInterfaceService,
 ) {
 
-    private val synchronizedRevisions =
-        mutableMapOf<Int, Int>()
-
     fun synchronize(
         player: Player,
     ) {
         val currentRevision =
             player.equipment.revision
 
-        val previousRevision =
-            synchronizedRevisions[player.index]
-
         if (
-            previousRevision != null &&
-            previousRevision == currentRevision
+            player.combatEquipmentSyncState
+                .synchronizedRevision ==
+                currentRevision
         ) {
             return
         }
 
-        synchronizedRevisions[player.index] =
+        player.combatEquipmentSyncState
+            .synchronizedRevision =
             currentRevision
 
         val equippedWeapon =
@@ -157,15 +154,10 @@ internal class CombatEquipmentService(
 
     private companion object {
         const val WORN_INVENTORY: Int = 94
-
         const val EQUIPMENT_CAPACITY: Int = 14
 
         const val EMPTY_ITEM: Int = -1
-
-        const val NO_SECONDARY_WEARPOS: Int =
-            -1
-
-        const val NO_TERTIARY_WEARPOS: Int =
-            -1
+        const val NO_SECONDARY_WEARPOS: Int = -1
+        const val NO_TERTIARY_WEARPOS: Int = -1
     }
 }

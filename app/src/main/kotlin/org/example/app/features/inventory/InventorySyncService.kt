@@ -4,11 +4,9 @@ import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
 import org.example.app.core.inventory.PlayerInventory
 import org.example.app.core.player.Player
+import org.example.app.features.inventory.state.inventoryState
 
 internal class InventorySyncService {
-
-    private val synchronizedRevisions =
-        mutableMapOf<Int, Int>()
 
     fun synchronize(
         player: Player,
@@ -16,17 +14,14 @@ internal class InventorySyncService {
         val currentRevision =
             player.inventory.revision
 
-        val previousRevision =
-            synchronizedRevisions[player.index]
-
         if (
-            previousRevision != null &&
-            previousRevision == currentRevision
+            player.inventoryState.synchronizedRevision ==
+                currentRevision
         ) {
             return
         }
 
-        synchronizedRevisions[player.index] =
+        player.inventoryState.synchronizedRevision =
             currentRevision
 
         player.session.queue(
