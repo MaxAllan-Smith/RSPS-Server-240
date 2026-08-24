@@ -1,13 +1,13 @@
 package org.example.app.features.combat.ui
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
-import org.example.app.core.equipment.EquipmentSlot
+import org.example.app.core.inventory.PlayerInventory
 import org.example.app.core.player.Player
-import org.example.app.features.combat.weapon.CombatWeaponRepository
+import org.example.app.features.combat.weapon.CombatWeaponEquipService
 
 internal class CombatInventoryHandler(
-    private val weaponRepository: CombatWeaponRepository =
-        CombatWeaponRepository(),
+    private val equipService: CombatWeaponEquipService =
+        CombatWeaponEquipService(),
 ) {
 
     fun handle(
@@ -22,65 +22,23 @@ internal class CombatInventoryHandler(
             return
         }
 
-        val slot =
-            packet.sub
-
-        if (slot !in INVENTORY_SLOT_RANGE) {
+        if (
+            packet.sub !in
+                0 until PlayerInventory.CAPACITY
+        ) {
             return
         }
 
-        val item =
-            player.inventory[slot]
-                ?: return
-
-        if (item.id != packet.obj) {
-            println(
-                "[Combat] '${player.username}' rejected stale " +
-                    "inventory interaction slot=$slot " +
-                    "packetItem=${packet.obj} actualItem=${item.id}."
-            )
-
-            return
-        }
-
-        val weapon =
-            weaponRepository.find(
-                item.id,
-            )
-
-        if (weapon == null) {
-            println(
-                "[Combat] '${player.username}' cannot wield " +
-                    "unsupported weapon item=${item.id}."
-            )
-
-            return
-        }
-
-        val previouslyEquipped =
-            player.equipment.set(
-                slot = EquipmentSlot.WEAPON,
-                item = item,
-            )
-
-        player.inventory.set(
-            slot = slot,
-            item = previouslyEquipped,
-        )
-
-        println(
-            "[Combat] '${player.username}' wielded " +
-                "item=${item.id} from inventory slot=$slot."
+        equipService.wield(
+            player = player,
+            inventorySlot = packet.sub,
+            expectedItemId = packet.obj,
         )
     }
 
     private companion object {
         const val INVENTORY_INTERFACE: Int = 149
         const val INVENTORY_COMPONENT: Int = 0
-
         const val WIELD_OP: Int = 3
-
-        val INVENTORY_SLOT_RANGE: IntRange =
-            0..27
     }
 }
