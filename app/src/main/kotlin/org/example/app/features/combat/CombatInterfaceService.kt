@@ -8,6 +8,9 @@ internal class CombatInterfaceService {
         player: Player,
         category: CombatWeaponCategory,
     ) {
+        player.combatState.weaponCategory =
+            category
+
         player.vars.setVarbit(
             id = COMBAT_WEAPON_CATEGORY_VARBIT,
             value = category.id,

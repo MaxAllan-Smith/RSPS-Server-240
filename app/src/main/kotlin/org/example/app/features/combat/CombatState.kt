@@ -5,6 +5,9 @@ import org.example.app.core.player.Player
 internal class CombatState {
     var initialized: Boolean = false
 
+    var weaponCategory: CombatWeaponCategory =
+        CombatWeaponCategory.UNARMED
+
     var style: CombatStyle =
         CombatStyle.STYLE_0
 
