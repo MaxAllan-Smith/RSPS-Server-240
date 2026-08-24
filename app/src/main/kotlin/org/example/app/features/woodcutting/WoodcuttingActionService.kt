@@ -11,18 +11,16 @@ import kotlin.random.Random
 /**
  * Owns active Woodcutting actions after the player reaches a tree.
  *
- * Responsibilities:
+ * Resource acquisition is genuinely probability based:
  *
- * - skill requirements;
- * - axe requirements;
- * - immediate chopping animation;
- * - level-scaled success rolls;
- * - bounded unlucky streaks;
- * - inventory rewards;
- * - Woodcutting XP;
- * - tree depletion.
+ * - the axe animation begins immediately;
+ * - the first roll waits long enough for the animation to be visible;
+ * - every resource roll is independent;
+ * - Woodcutting level influences success probability;
+ * - failed attempts wait a short randomized number of game ticks;
+ * - there is no forced-success attempt.
  *
- * Tree selection and movement remain in [WoodcuttingFeature].
+ * Tree selection and routing remain responsibilities of WoodcuttingFeature.
  */
 internal class WoodcuttingActionService(
     private val axeService:
@@ -37,14 +35,7 @@ internal class WoodcuttingActionService(
 ) {
 
     /**
-     * Begins chopping immediately after the player reaches their selected
-     * interaction position.
-     *
-     * The animation is queued here - not when the first resource roll occurs.
-     *
-     * The first resource roll is intentionally delayed by
-     * [INITIAL_SWING_TICKS], ensuring the player visibly swings the axe before
-     * a tree is allowed to fall.
+     * Begins chopping once the player reaches the selected interaction tile.
      */
     fun start(
         player: Player,
@@ -52,8 +43,8 @@ internal class WoodcuttingActionService(
         target: WoodcuttingTarget,
     ) {
         /*
-         * Another player may have felled this tree while we were walking toward
-         * it.
+         * Another player may have depleted the resource while this player was
+         * travelling toward it.
          */
         if (
             worldLocs.isOverridden(
@@ -129,9 +120,8 @@ internal class WoodcuttingActionService(
             )
 
         /*
-         * Oak and Willow are routable and validate their requirements, but
-         * their reward loops remain disabled until the global XP service can
-         * represent fractional canonical XP.
+         * Oak and Willow remain disabled until fractional XP is handled by the
+         * global ExperienceService.
          */
         if (
             reward == null ||
@@ -156,10 +146,7 @@ internal class WoodcuttingActionService(
             }
 
         /*
-         * Facing and the chopping animation are both registered immediately.
-         *
-         * This happens in the same game cycle in which Woodcutting detects that
-         * movement reached the interaction tile.
+         * Face and animate immediately when interaction range is reached.
          */
         faceTree(
             player = player,
@@ -184,14 +171,13 @@ internal class WoodcuttingActionService(
                     selection.axe,
 
                 /*
-                 * The first resource roll cannot happen until the player has
-                 * visibly been chopping for this many complete game ticks.
+                 * Prevent the tree from disappearing in the same visual moment
+                 * that the first chopping animation begins.
+                 *
+                 * 2 game ticks = 1.2 seconds.
                  */
                 ticksUntilRoll =
                     INITIAL_SWING_TICKS,
-
-                rollAttempts =
-                    0,
             )
 
         println(
@@ -203,7 +189,7 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Advances one active Woodcutting action by one 600 ms game cycle.
+     * Advances one active Woodcutting action by one 600ms game cycle.
      */
     fun cycle(
         context: GameContext,
@@ -215,10 +201,7 @@ internal class WoodcuttingActionService(
                 ?: return
 
         /*
-         * Global world state takes precedence over this player's action.
-         *
-         * If another player successfully felled the tree first, this action
-         * ends without granting a duplicate reward.
+         * Stop immediately when another player depletes this tree.
          */
         if (
             worldLocs.isOverridden(
@@ -241,7 +224,7 @@ internal class WoodcuttingActionService(
         }
 
         /*
-         * Walking away is an explicit interruption.
+         * Movement away from the interaction tile interrupts chopping.
          */
         if (
             player.position !=
@@ -258,10 +241,10 @@ internal class WoodcuttingActionService(
         }
 
         /*
-         * Resolve the tool every cycle.
+         * Re-evaluate the player's best usable axe while the action runs.
          *
-         * Moving an axe between inventory and equipment remains valid, while
-         * losing every usable axe interrupts the action.
+         * This means moving an axe between inventory/equipment remains valid
+         * and acquiring a better supported axe can take effect naturally.
          */
         val selection =
             axeService.findBestUsable(
@@ -283,9 +266,6 @@ internal class WoodcuttingActionService(
             return
         }
 
-        /*
-         * A better axe may become available while the action is running.
-         */
         if (
             selection.axe.id !=
             action.axe.id
@@ -317,14 +297,13 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Performs one actual Woodcutting resource roll.
+     * Performs one independent random resource-success roll.
      *
-     * Success chance already scales continuously with current Woodcutting level
-     * through [WoodcuttingSuccessRate].
+     * There is no guaranteed roll count.
      *
-     * We additionally bound the maximum number of failed rolls. This removes
-     * exceptionally long unlucky tails and makes high Woodcutting levels feel
-     * consistently faster rather than merely statistically faster.
+     * Higher Woodcutting levels receive a higher probability through
+     * WoodcuttingSuccessRate, so progression improves the average chopping
+     * speed without making the outcome deterministic.
      */
     private fun performResourceRoll(
         context: GameContext,
@@ -356,49 +335,20 @@ internal class WoodcuttingActionService(
                 Skill.WOODCUTTING
             )
 
-        action.rollAttempts++
-
-        val maximumAttempts =
-            maximumAttempts(
-                woodcuttingLevel =
-                    level,
-            )
-
-        /*
-         * Normal success roll.
-         */
-        val randomSuccess =
+        val success =
             successRate.succeeds(
-                level =
-                    level,
-
-                random =
-                    random,
+                level = level,
+                random = random,
             )
-
-        /*
-         * If RNG has been consistently unlucky, guarantee the final allowed
-         * attempt.
-         *
-         * This preserves level-scaled probability while eliminating extreme
-         * chopping times.
-         */
-        val guaranteedSuccess =
-            action.rollAttempts >=
-                maximumAttempts
 
         println(
-            "[Woodcutting] '${player.username}' roll " +
-                "${action.rollAttempts}/$maximumAttempts " +
+            "[Woodcutting] '${player.username}' resource roll " +
                 "for ${action.target.tree.name}: " +
                 "level=$level, " +
-                "success=${randomSuccess || guaranteedSuccess}."
+                "success=$success."
         )
 
-        if (
-            randomSuccess ||
-            guaranteedSuccess
-        ) {
+        if (success) {
             reward(
                 context = context,
                 player = player,
@@ -410,8 +360,7 @@ internal class WoodcuttingActionService(
         }
 
         /*
-         * Continue the chopping visual while waiting for another resource
-         * roll.
+         * Continue swinging after a failed roll.
          */
         playAnimation(
             player = player,
@@ -419,12 +368,22 @@ internal class WoodcuttingActionService(
                 action.axe,
         )
 
+        /*
+         * Randomize the next check rather than running on an exact metronome.
+         *
+         * 2..4 server ticks means the next roll occurs after approximately:
+         *
+         * 1.2s, 1.8s or 2.4s.
+         *
+         * The resource outcome remains separately randomized by the success
+         * chance calculation.
+         */
         action.ticksUntilRoll =
-            RETRY_ROLL_INTERVAL_TICKS
+            randomRetryTicks()
     }
 
     /**
-     * Stops an active Woodcutting action and clears its animation.
+     * Stops an active chopping action.
      */
     fun cancel(
         player: Player,
@@ -458,10 +417,7 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Commits one successful resource harvest.
-     *
-     * World depletion is performed before awarding the resource so two players
-     * cannot both receive the final log from the same tree.
+     * Awards the successful resource and atomically depletes the shared tree.
      */
     private fun reward(
         context: GameContext,
@@ -478,7 +434,7 @@ internal class WoodcuttingActionService(
             )
 
         /*
-         * Do not globally deplete the resource if the successful player cannot
+         * Never globally deplete a resource when the successful player cannot
          * receive its reward.
          */
         if (
@@ -525,13 +481,15 @@ internal class WoodcuttingActionService(
             )
 
         /*
-         * Replace the live resource atomically.
+         * Deplete before awarding the item.
          *
-         * false means somebody else depleted this exact location first.
+         * This prevents two players from receiving the same resource if they
+         * succeed against the same tree during the same logical period.
          */
         val depleted =
             worldLocs.replace(
-                context = context,
+                context =
+                    context,
 
                 originalId =
                     action.target.locId,
@@ -566,10 +524,6 @@ internal class WoodcuttingActionService(
             return
         }
 
-        /*
-         * Capacity was checked immediately before depletion and gameplay is
-         * serialized on the authoritative game-engine thread.
-         */
         check(
             player.inventory.add(
                 ItemStack(
@@ -612,7 +566,7 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Reports why an axe could not be selected.
+     * Explains why an available axe cannot currently be used.
      */
     private fun handleMissingAxe(
         player: Player,
@@ -654,7 +608,7 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Keeps the avatar facing the selected tree while chopping.
+     * Keeps the player facing the tree while the action begins.
      */
     private fun faceTree(
         player: Player,
@@ -686,7 +640,7 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Restarts/queues the chopping sequence.
+     * Starts or restarts the axe chopping sequence.
      */
     private fun playAnimation(
         player: Player,
@@ -706,30 +660,16 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Caps an unlucky Woodcutting streak according to current skill level.
-     *
-     * The normal success-rate calculation is still performed on every attempt;
-     * this function only defines the upper bound.
+     * Random delay before the next resource roll after a failed attempt.
      */
-    private fun maximumAttempts(
-        woodcuttingLevel: Int,
-    ): Int =
-        when {
-            woodcuttingLevel >=
-                90 ->
-                1
+    private fun randomRetryTicks(): Int =
+        random.nextInt(
+            from =
+                MIN_RETRY_TICKS,
 
-            woodcuttingLevel >=
-                60 ->
-                2
-
-            woodcuttingLevel >=
-                30 ->
-                3
-
-            else ->
-                4
-        }
+            until =
+                MAX_RETRY_TICKS + 1,
+        )
 
     private fun randomTicks(
         range: IntRange,
@@ -753,25 +693,25 @@ internal class WoodcuttingActionService(
     private companion object {
 
         /**
-         * Minimum visible startup period before the very first resource roll.
+         * Minimum startup time before the first random success roll.
          *
-         * 2 × 600 ms = 1.2 seconds.
+         * 2 × 600ms = 1.2 seconds.
          *
-         * Even a guaranteed level-90+ success therefore shows a real chopping
-         * action before the tree falls.
+         * This prevents an apparent instant-cut immediately after reaching the
+         * tree.
          */
         const val INITIAL_SWING_TICKS: Int =
             2
 
         /**
-         * Delay between subsequent failed resource rolls.
+         * Random retry interval after a failed resource roll.
          *
-         * 3 × 600 ms = 1.8 seconds.
-         *
-         * This is slightly quicker than the previous four-tick cycle while
-         * still maintaining a readable repeated chopping animation.
+         * 2..4 ticks = approximately 1.2..2.4 seconds.
          */
-        const val RETRY_ROLL_INTERVAL_TICKS: Int =
-            3
+        const val MIN_RETRY_TICKS: Int =
+            2
+
+        const val MAX_RETRY_TICKS: Int =
+            4
     }
 }
