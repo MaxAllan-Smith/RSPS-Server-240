@@ -169,11 +169,9 @@ class WorldLocService {
             ArrayList<Pair<WorldLocKey, DynamicWorldLoc>>()
 
         for (
-            entry in
-            overrides.entries
+        (key, loc) in
+        overrides
         ) {
-            val loc =
-                entry.value
 
             loc.ticksRemaining--
 
@@ -181,7 +179,7 @@ class WorldLocService {
                 loc.ticksRemaining <= 0
             ) {
                 expired +=
-                    entry.key to loc
+                    key to loc
             }
         }
 

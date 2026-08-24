@@ -12,7 +12,11 @@ internal enum class WoodcuttingTreeType {
 }
 
 /**
- * Item/XP produced by a successful resource roll.
+ * Item/XP produced by a successful Woodcutting resource roll.
+ *
+ * The XP representation will be replaced by the global fixed-point
+ * ExperienceService in the next architecture step so fractional rewards such
+ * as 37.5 and 67.5 XP can be represented exactly.
  */
 internal data class WoodcuttingReward(
     val itemId: Int,
@@ -23,10 +27,9 @@ internal data class WoodcuttingReward(
 /**
  * Static metadata for a supported Woodcutting tree.
  *
- * This remains in Kotlin for the current incremental implementation.
- *
- * Once the mechanics are stable, these fields are strong candidates for the
- * SQLite-backed Woodcutting definition repository discussed earlier.
+ * These definitions intentionally remain in Kotlin while the mechanics are
+ * still being developed. Once the data shape stabilizes they will move behind
+ * a SQLite-backed WoodcuttingTreeRepository and be preloaded into memory.
  */
 internal data class WoodcuttingTree(
     val type: WoodcuttingTreeType,
@@ -36,21 +39,18 @@ internal data class WoodcuttingTree(
     val reward: WoodcuttingReward?,
 
     /**
-     * Loc used while this tree is depleted.
-     *
-     * Null means the depletion stage has not yet been enabled for this tree.
+     * Runtime loc used while the resource is depleted.
      */
     val stumpId: Int?,
 
     /**
-     * Inclusive server-tick respawn range.
+     * Inclusive server-game-tick respawn range.
      */
     val respawnTicks: IntRange?,
 
     /**
-     * Static placement properties required by LocAddChangeV2.
-     *
-     * The currently-supported regular trees are ordinary centrepiece locs.
+     * Placement information required when replacing the static cache loc with
+     * a dynamic runtime loc.
      */
     val locShape: Int =
         LocShapeConstants
@@ -59,6 +59,9 @@ internal data class WoodcuttingTree(
     val locRotation: Int =
         0,
 
+    /**
+     * Positional sound played when this tree falls.
+     */
     val fallSoundId: Int? =
         null,
 ) {
@@ -86,13 +89,16 @@ internal data class WoodcuttingTree(
     companion object {
 
         /**
-         * Revision-240 regular tree variants observed:
+         * Revision-240 regular tree variants verified so far:
          *
          * tree  = 1276
          * tree2 = 1278
          *
-         * Current RSMod Woodcutting definitions map both to regular stump 1342
-         * and use a randomized 60..100 tick respawn.
+         * Custom server tuning:
+         *
+         * The underlying reference data uses a longer randomized respawn.
+         * Normal trees are intentionally shortened here to 50..80 game ticks
+         * so early Woodcutting areas recover more quickly.
          */
         val REGULAR =
             WoodcuttingTree(
@@ -115,8 +121,10 @@ internal data class WoodcuttingTree(
                     WoodcuttingReward(
                         itemId =
                             1511,
+
                         itemName =
                             "logs",
+
                         experience =
                             25,
                     ),
@@ -124,18 +132,23 @@ internal data class WoodcuttingTree(
                 stumpId =
                     1342,
 
+                /*
+                 * 50..80 × 600 ms
+                 *
+                 * = 30.0 .. 48.0 seconds.
+                 */
                 respawnTicks =
-                    60..100,
+                    50..80,
 
                 fallSoundId =
                     2734,
             )
 
         /**
-         * Oak interaction and level requirement are already enabled.
+         * Oak is already recognized and its level requirement is active.
          *
-         * Its full resource/depletion loop remains disabled until the generic
-         * fractional XP system is introduced.
+         * The complete reward/depletion loop is enabled after the generic XP
+         * service can represent its fractional XP reward exactly.
          */
         val OAK =
             WoodcuttingTree(
@@ -164,7 +177,7 @@ internal data class WoodcuttingTree(
             )
 
         /**
-         * Revision-240 Willow variants captured so far:
+         * Revision-240 Willow variants verified so far:
          *
          * willowtree   = 10819
          * willow_tree2 = 10829
