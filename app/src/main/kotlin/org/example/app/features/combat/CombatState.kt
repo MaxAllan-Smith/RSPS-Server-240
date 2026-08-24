@@ -5,7 +5,8 @@ import org.example.app.core.player.Player
 internal class CombatState {
     var initialized: Boolean = false
 
-    var style: Int = 0
+    var style: CombatStyle =
+        CombatStyle.STYLE_0
 
     var autoRetaliate: Boolean = true
 }

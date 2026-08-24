@@ -20,25 +20,25 @@ internal class CombatOptionsHandler {
             STYLE_0_COMPONENT ->
                 setCombatStyle(
                     player = player,
-                    style = 0,
+                    style = CombatStyle.STYLE_0,
                 )
 
             STYLE_1_COMPONENT ->
                 setCombatStyle(
                     player = player,
-                    style = 1,
+                    style = CombatStyle.STYLE_1,
                 )
 
             STYLE_2_COMPONENT ->
                 setCombatStyle(
                     player = player,
-                    style = 2,
+                    style = CombatStyle.STYLE_2,
                 )
 
             STYLE_3_COMPONENT ->
                 setCombatStyle(
                     player = player,
-                    style = 3,
+                    style = CombatStyle.STYLE_3,
                 )
 
             AUTO_RETALIATE_COMPONENT ->
@@ -48,19 +48,19 @@ internal class CombatOptionsHandler {
 
     private fun setCombatStyle(
         player: Player,
-        style: Int,
+        style: CombatStyle,
     ) {
         player.combatState.style =
             style
 
         player.vars.setVarp(
             id = COMBAT_STYLE_VARP,
-            value = style,
+            value = style.id,
         )
 
         println(
             "[Combat] '${player.username}' selected " +
-                "combat style $style."
+                "combat style ${style.id}."
         )
     }
 
