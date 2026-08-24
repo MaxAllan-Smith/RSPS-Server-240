@@ -3,6 +3,7 @@ package org.example.app.features.skills
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
+import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
@@ -17,7 +18,7 @@ internal class SkillLevelUpService {
     ) {
         if (!change.levelledUp) return
 
-        flashSkillIcon(
+        flashSkillTile(
             player = player,
             skill = change.skill,
         )
@@ -35,7 +36,7 @@ internal class SkillLevelUpService {
         )
     }
 
-    private fun flashSkillIcon(
+    private fun flashSkillTile(
         player: Player,
         skill: Skill,
     ) {
@@ -43,6 +44,26 @@ internal class SkillLevelUpService {
             id = skill.levelUpFlashVarbitId,
             value = 1,
         )
+
+        val component =
+            packComponent(
+                interfaceId = STATS_INTERFACE,
+                componentId = skill.statsComponentId,
+            )
+
+        for (child in SKILL_BACKGROUND_CHILDREN) {
+            player.session.queue(
+                RunClientScript(
+                    id = FLASH_COMPONENT_SCRIPT,
+                    values =
+                        listOf(
+                            component,
+                            child,
+                            skill.id,
+                        ),
+                )
+            )
+        }
     }
 
     private fun playFireworks(player: Player) {
@@ -165,7 +186,15 @@ internal class SkillLevelUpService {
             .lowercase()
             .replaceFirstChar(Char::uppercase)
 
+    private fun packComponent(
+        interfaceId: Int,
+        componentId: Int,
+    ): Int =
+        (interfaceId shl 16) or componentId
+
     private companion object {
+        const val STATS_INTERFACE: Int = 320
+
         const val CHATBOX_INTERFACE: Int = 162
         const val CHAT_MODAL_COMPONENT: Int = 567
 
@@ -175,6 +204,14 @@ internal class SkillLevelUpService {
         const val CONTINUE_COMPONENT: Int = 3
 
         const val MODAL_TYPE: Int = 0
+
+        const val FLASH_COMPONENT_SCRIPT: Int = 7782
+
+        val SKILL_BACKGROUND_CHILDREN: IntArray =
+            intArrayOf(
+                0,
+                1,
+            )
 
         const val LEVEL_UP_GRAPHIC_SLOT: Int = 0
         const val LEVEL_UP_FIREWORKS_GRAPHIC: Int = 199
