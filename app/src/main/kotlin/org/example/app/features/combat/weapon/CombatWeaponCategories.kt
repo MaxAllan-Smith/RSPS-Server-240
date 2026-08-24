@@ -67,6 +67,32 @@ internal object CombatWeaponCategories {
                 ),
         )
 
+    val WHIP =
+        CombatWeaponCategoryDefinition(
+            category = CombatWeaponCategory.WHIP,
+            styles =
+                listOf(
+                    CombatStyleDefinition(
+                        style = CombatStyle.STYLE_0,
+                        name = "Flick",
+                        stance = CombatStance.ACCURATE,
+                        attackType = CombatAttackType.SLASH,
+                    ),
+                    CombatStyleDefinition(
+                        style = CombatStyle.STYLE_1,
+                        name = "Lash",
+                        stance = CombatStance.CONTROLLED,
+                        attackType = CombatAttackType.SLASH,
+                    ),
+                    CombatStyleDefinition(
+                        style = CombatStyle.STYLE_3,
+                        name = "Deflect",
+                        stance = CombatStance.DEFENSIVE,
+                        attackType = CombatAttackType.SLASH,
+                    ),
+                ),
+        )
+
     private val definitions: Map<
         CombatWeaponCategory,
         CombatWeaponCategoryDefinition,
@@ -74,6 +100,7 @@ internal object CombatWeaponCategories {
         listOf(
             UNARMED,
             AXE,
+            WHIP,
         ).associateBy {
             it.category
         }
