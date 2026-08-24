@@ -1,5 +1,7 @@
 package org.example.app.features.combat.weapon
 
+import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
+import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
 import org.example.app.core.equipment.EquipmentSlot
 import org.example.app.core.player.Player
 import org.example.app.features.combat.model.CombatWeaponCategory
@@ -22,6 +24,10 @@ internal class CombatEquipmentService(
         synchronizeAppearance(
             player = player,
             itemId = equippedWeapon?.id,
+        )
+
+        synchronizeEquipmentInventory(
+            player = player,
         )
 
         val definition =
@@ -90,7 +96,43 @@ internal class CombatEquipmentService(
             )
     }
 
+    private fun synchronizeEquipmentInventory(
+        player: Player,
+    ) {
+        player.session.queue(
+            UpdateInvFull(
+                inventoryId = WORN_INVENTORY,
+                capacity = EQUIPMENT_CAPACITY,
+            ) { slot ->
+                val equipmentSlot =
+                    EquipmentSlot.entries
+                        .firstOrNull {
+                            it.id == slot
+                        }
+
+                val item =
+                    equipmentSlot
+                        ?.let {
+                            player.equipment[it]
+                        }
+
+                if (item == null) {
+                    InventoryObject.NULL
+                } else {
+                    InventoryObject(
+                        id = item.id,
+                        count = item.amount,
+                    )
+                }
+            }
+        )
+    }
+
     private companion object {
+        const val WORN_INVENTORY: Int = 94
+
+        const val EQUIPMENT_CAPACITY: Int = 14
+
         const val EMPTY_ITEM: Int = -1
 
         const val NO_SECONDARY_WEARPOS: Int =
