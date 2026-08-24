@@ -6,13 +6,16 @@ import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
 
 internal class SkillService(
-    private val levelUpService: SkillLevelUpService =
-        SkillLevelUpService(),
+    private val levelUpService: SkillLevelUpService,
 ) {
 
     fun syncInitial(player: Player) {
-        val state = player.skillSyncState
-        if (state.initialSyncSent) return
+        val state =
+            player.skillSyncState
+
+        if (state.initialSyncSent) {
+            return
+        }
 
         for (skill in Skill.entries) {
             sync(

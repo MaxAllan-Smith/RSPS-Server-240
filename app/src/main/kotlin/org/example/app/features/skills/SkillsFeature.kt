@@ -6,12 +6,22 @@ import org.example.app.core.engine.GameContext
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.features.skills.unlocks.SkillUnlockLoader
-import org.example.app.features.skills.unlocks.SkillUnlockRepository
+import org.example.app.features.skills.unlocks.SkillUnlockService
 
-internal class SkillsFeature(
-    private val skillService: SkillService =
-        SkillService(),
-) : Feature {
+internal class SkillsFeature : Feature {
+
+    private val skillUnlockService =
+        SkillUnlockService()
+
+    private val skillLevelUpService =
+        SkillLevelUpService(
+            unlocks = skillUnlockService,
+        )
+
+    private val skillService =
+        SkillService(
+            levelUpService = skillLevelUpService,
+        )
 
     private val skillCommandHandler =
         SkillCommandHandler(
@@ -20,9 +30,6 @@ internal class SkillsFeature(
 
     private val skillLevelUpHandler =
         SkillLevelUpHandler()
-
-    private var unlockRepository:
-        SkillUnlockRepository? = null
 
     override val id: String =
         "skills"
@@ -49,35 +56,30 @@ internal class SkillsFeature(
         registrar.beforeInfoUpdate(
             priority = SKILLS_PRIORITY,
         ) { context, player ->
-            loadUnlockRepository(context)
+            initializeUnlocks(context)
 
             skillService.syncInitial(player)
         }
     }
 
-    private fun loadUnlockRepository(
+    private fun initializeUnlocks(
         context: GameContext,
-    ): SkillUnlockRepository {
-        val existing =
-            unlockRepository
-
-        if (existing != null) {
-            return existing
+    ) {
+        if (skillUnlockService.isInitialized) {
+            return
         }
 
-        val loaded =
+        val repository =
             SkillUnlockLoader.load(
                 context.cacheDirectory
             )
 
-        unlockRepository = loaded
+        skillUnlockService.initialize(repository)
 
         println(
-            "[Skills] Loaded ${loaded.unlockLevelCount} " +
-                "unlock levels across ${loaded.skillCount} skills."
+            "[Skills] Loaded ${repository.unlockLevelCount} " +
+                "unlock levels across ${repository.skillCount} skills."
         )
-
-        return loaded
     }
 
     private companion object {

@@ -3,26 +3,29 @@ package org.example.app.features.skills
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetHide
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetText
-import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import org.example.app.core.player.Player
+import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
 import org.example.app.core.skills.SkillExperience
+import org.example.app.features.skills.unlocks.SkillUnlockService
 
-internal class SkillLevelUpService {
+internal class SkillLevelUpService(
+    private val unlocks: SkillUnlockService,
+) {
 
     fun show(
         player: Player,
         change: SkillChange,
     ) {
-        if (!change.levelledUp) return
+        if (!change.levelledUp) {
+            return
+        }
 
-        player.skillLevelUpState.record(change)
-
-        flashSkillTile(
+        handleUnlocks(
             player = player,
-            skill = change.skill,
+            change = change,
         )
 
         playFireworks(player)
@@ -38,37 +41,42 @@ internal class SkillLevelUpService {
         )
     }
 
-    private fun flashSkillTile(
+    private fun handleUnlocks(
         player: Player,
-        skill: Skill,
+        change: SkillChange,
     ) {
+        val firstLevel =
+            change.previousLevel + 1
+
+        val lastLevel =
+            change.level
+
+        if (
+            !unlocks.hasUnlocks(
+                skill = change.skill,
+                firstLevel = firstLevel,
+                lastLevel = lastLevel,
+            )
+        ) {
+            return
+        }
+
+        player.skillLevelUpState.record(change)
+
         player.vars.setVarbit(
-            id = skill.levelUpFlashVarbitId,
+            id = change.skill.levelUpFlashVarbitId,
             value = 1,
         )
 
-        val component =
-            packComponent(
-                interfaceId = STATS_INTERFACE,
-                componentId = skill.statsComponentId,
-            )
-
-        for (child in SKILL_BACKGROUND_CHILDREN) {
-            player.session.queue(
-                RunClientScript(
-                    id = FLASH_COMPONENT_SCRIPT,
-                    values =
-                        listOf(
-                            component,
-                            child,
-                            skill.id,
-                        ),
-                )
-            )
-        }
+        player.sendGameMessage(
+            "You've unlocked new ${displayName(change.skill)} content. " +
+                "Check your Skills tab to see what you've unlocked."
+        )
     }
 
-    private fun playFireworks(player: Player) {
+    private fun playFireworks(
+        player: Player,
+    ) {
         player.infos.playerInfo.avatar.extendedInfo.setSpotAnim(
             slot = LEVEL_UP_GRAPHIC_SLOT,
             id = LEVEL_UP_FIREWORKS_GRAPHIC,
@@ -160,7 +168,9 @@ internal class SkillLevelUpService {
         )
     }
 
-    private fun title(change: SkillChange): String {
+    private fun title(
+        change: SkillChange,
+    ): String {
         val name =
             displayName(change.skill)
 
@@ -169,7 +179,10 @@ internal class SkillLevelUpService {
 
         if (levels == 1) {
             val article =
-                if (name.first().lowercaseChar() in VOWELS) {
+                if (
+                    name.first()
+                        .lowercaseChar() in VOWELS
+                ) {
                     "an"
                 } else {
                     "a"
@@ -183,20 +196,14 @@ internal class SkillLevelUpService {
             "$levels $name levels."
     }
 
-    private fun displayName(skill: Skill): String =
+    private fun displayName(
+        skill: Skill,
+    ): String =
         skill.name
             .lowercase()
             .replaceFirstChar(Char::uppercase)
 
-    private fun packComponent(
-        interfaceId: Int,
-        componentId: Int,
-    ): Int =
-        (interfaceId shl 16) or componentId
-
     private companion object {
-        const val STATS_INTERFACE: Int = 320
-
         const val CHATBOX_INTERFACE: Int = 162
         const val CHAT_MODAL_COMPONENT: Int = 567
 
@@ -206,14 +213,6 @@ internal class SkillLevelUpService {
         const val CONTINUE_COMPONENT: Int = 3
 
         const val MODAL_TYPE: Int = 0
-
-        const val FLASH_COMPONENT_SCRIPT: Int = 7782
-
-        val SKILL_BACKGROUND_CHILDREN: IntArray =
-            intArrayOf(
-                0,
-                1,
-            )
 
         const val LEVEL_UP_GRAPHIC_SLOT: Int = 0
         const val LEVEL_UP_FIREWORKS_GRAPHIC: Int = 199
