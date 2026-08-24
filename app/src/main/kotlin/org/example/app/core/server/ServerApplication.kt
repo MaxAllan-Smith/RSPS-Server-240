@@ -24,8 +24,11 @@ class ServerApplication(
     private val config: ServerConfig,
     private val features: List<Feature>,
 ) {
-    private val shuttingDown = AtomicBoolean(false)
-    private val shutdownLatch = CountDownLatch(1)
+    private val shuttingDown =
+        AtomicBoolean(false)
+
+    private val shutdownLatch =
+        CountDownLatch(1)
 
     /**
      * Keep RSProt experimental API opt-ins scoped to the application boundary.
@@ -35,51 +38,78 @@ class ServerApplication(
         ExperimentalStdlibApi::class,
     )
     fun run() {
-        val cache = prepareCache()
-        val rsa = prepareRsa()
-        val huffman = HuffmanLoader.load(cache.directory)
-        val js5 = RsProtJs5Provider.open(cache.directory)
+        val cache =
+            prepareCache()
+
+        val rsa =
+            prepareRsa()
+
+        val huffman =
+            HuffmanLoader.load(cache.directory)
+
+        val js5 =
+            RsProtJs5Provider.open(cache.directory)
 
         try {
-            val featureRuntime = FeatureRegistry().install(features)
+            val featureRuntime =
+                FeatureRegistry()
+                    .install(features)
 
-            println("[Features] Installed: ${featureRuntime.featureIds.joinToString()}")
-
-            val networkService = RsProtNetworkFactory(
-                config = config,
-                rsaKey = rsa.rsProtKey,
-                huffmanProvider = huffman,
-                js5Provider = js5,
-                features = featureRuntime,
-            ).build()
-
-            val playerManager = PlayerManager(networkService)
-
-            val varbitDefinitions = VarbitDefinitionRepository(
-                cache.directory
+            println(
+                "[Features] Installed: " +
+                    featureRuntime.featureIds.joinToString()
             )
 
-            val context = GameContext(
-                networkService = networkService,
-                players = playerManager,
-                varbits = varbitDefinitions
+            val networkService =
+                RsProtNetworkFactory(
+                    config = config,
+                    rsaKey = rsa.rsProtKey,
+                    huffmanProvider = huffman,
+                    js5Provider = js5,
+                    features = featureRuntime,
+                ).build()
 
-            )
+            val playerManager =
+                PlayerManager(networkService)
 
-            val engine = GameEngine(
-                context = context,
-                features = featureRuntime,
-                infoSynchronizer = RsProtInfoSynchronizer(playerManager),
-                cycleMillis = config.gameCycleMillis,
-            )
+            val varbitDefinitions =
+                VarbitDefinitionRepository(
+                    cache.directory
+                )
+
+            val context =
+                GameContext(
+                    networkService = networkService,
+                    players = playerManager,
+                    varbits = varbitDefinitions,
+                    cacheDirectory = cache.directory,
+                )
+
+            val engine =
+                GameEngine(
+                    context = context,
+                    features = featureRuntime,
+                    infoSynchronizer =
+                        RsProtInfoSynchronizer(
+                            playerManager
+                        ),
+                    cycleMillis = config.gameCycleMillis,
+                )
 
             try {
                 println("\n[Server] Starting RSProt...")
+
                 networkService.start()
                 engine.start()
             } catch (t: Throwable) {
-                runCatching { engine.close() }
-                runCatching { networkService.shutdownNow() }
+                runCatching {
+                    engine.close()
+                }
+
+                runCatching {
+                    networkService.shutdownNow()
+                }
+
                 throw t
             }
 
@@ -92,6 +122,7 @@ class ServerApplication(
             printOnlineSummary(cache)
 
             println("\nPress Ctrl+C to stop.")
+
             shutdownLatch.await()
         } catch (t: Throwable) {
             js5.close()
@@ -100,12 +131,14 @@ class ServerApplication(
     }
 
     private fun prepareCache(): PreparedCache {
-        val target = CacheTarget(
-            major = config.protocolRevision,
-            minor = config.cacheMinorRevision,
-            windowStart = config.patchWindowStart,
-            windowEndExclusive = config.patchWindowEndExclusive,
-        )
+        val target =
+            CacheTarget(
+                major = config.protocolRevision,
+                minor = config.cacheMinorRevision,
+                windowStart = config.patchWindowStart,
+                windowEndExclusive =
+                    config.patchWindowEndExclusive,
+            )
 
         return CacheBootstrap(
             archiveClient = OpenRs2ArchiveClient(),
@@ -121,7 +154,7 @@ class ServerApplication(
         ).also {
             println(
                 "\nRSA public information written to: " +
-                        config.rsaPublicInfo.toAbsolutePath()
+                    config.rsaPublicInfo.toAbsolutePath()
             )
         }
 
@@ -130,30 +163,46 @@ class ServerApplication(
         networkShutdown: () -> Unit,
         js5Provider: RsProtJs5Provider,
     ) {
-        Runtime.getRuntime().addShutdownHook(
-            Thread(
-                {
-                    if (!shuttingDown.compareAndSet(false, true)) return@Thread
-
-                    println("\n[Server] Shutting down...")
-
-                    try {
-                        gameEngine.close()
-                    } finally {
-                        js5Provider.use { js5Provider ->
-                            networkShutdown()
+        Runtime
+            .getRuntime()
+            .addShutdownHook(
+                Thread(
+                    {
+                        if (
+                            !shuttingDown.compareAndSet(
+                                false,
+                                true,
+                            )
+                        ) {
+                            return@Thread
                         }
-                    }
 
-                    println("[Server] Shutdown complete.")
-                    shutdownLatch.countDown()
-                },
-                "server-shutdown",
+                        println(
+                            "\n[Server] Shutting down..."
+                        )
+
+                        try {
+                            gameEngine.close()
+                        } finally {
+                            js5Provider.use {
+                                networkShutdown()
+                            }
+                        }
+
+                        println(
+                            "[Server] Shutdown complete."
+                        )
+
+                        shutdownLatch.countDown()
+                    },
+                    "server-shutdown",
+                )
             )
-        )
     }
 
-    private fun printOnlineSummary(cache: PreparedCache) {
+    private fun printOnlineSummary(
+        cache: PreparedCache,
+    ) {
         println(
             """
             
