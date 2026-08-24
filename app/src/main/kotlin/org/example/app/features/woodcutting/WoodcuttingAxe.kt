@@ -1,15 +1,17 @@
 package org.example.app.features.woodcutting
 
 /**
- * Static metadata for an axe usable by Woodcutting.
+ * Static Woodcutting metadata for an axe.
  *
- * Axe IDs and requirements are added only after being verified for
- * the target game revision/server data.
+ * Attack requirements remain an equipment concern. Woodcutting only needs to
+ * know whether the tool is usable for the skill and which action sequence it
+ * should play.
  */
 internal data class WoodcuttingAxe(
     val id: Int,
     val name: String,
     val woodcuttingLevel: Int,
+    val animationId: Int,
     val priority: Int,
 ) {
 
@@ -22,6 +24,10 @@ internal data class WoodcuttingAxe(
             "Woodcutting axe level must be positive."
         }
 
+        require(animationId >= 0) {
+            "Woodcutting animation id must be non-negative."
+        }
+
         require(priority >= 0) {
             "Woodcutting axe priority must be non-negative."
         }
@@ -32,23 +38,27 @@ internal data class WoodcuttingAxe(
         /**
          * Bronze axe.
          *
-         * Item id 1351 is already verified by the existing equipment
-         * implementation and revision-240 client captures.
+         * Item:      1351
+         * WC level:  1
+         * Sequence:  879 - human_woodcutting_bronze_axe
          */
         val BRONZE =
             WoodcuttingAxe(
                 id = 1351,
                 name = "Bronze axe",
                 woodcuttingLevel = 1,
+                animationId = 879,
                 priority = 0,
             )
 
-        val entries: List<WoodcuttingAxe> =
+        val entries:
+            List<WoodcuttingAxe> =
             listOf(
                 BRONZE,
             )
 
-        private val byId: Map<Int, WoodcuttingAxe> =
+        private val byId:
+            Map<Int, WoodcuttingAxe> =
             entries.associateBy(
                 WoodcuttingAxe::id,
             )

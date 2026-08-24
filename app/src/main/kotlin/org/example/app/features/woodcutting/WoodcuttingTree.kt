@@ -1,18 +1,45 @@
 package org.example.app.features.woodcutting
 
 /**
- * Static metadata describing a tree supported by Woodcutting.
+ * Logical category of Woodcutting resource.
+ */
+internal enum class WoodcuttingTreeType {
+    REGULAR,
+    OAK,
+    WILLOW,
+}
+
+/**
+ * Item/XP produced by a successful Woodcutting roll.
  *
- * IDs in this file have been verified directly against revision-240
- * location interaction packets.
+ * Only rewards that can currently be represented exactly by the server skill
+ * model are enabled here.
+ */
+internal data class WoodcuttingReward(
+    val itemId: Int,
+    val itemName: String,
+    val experience: Int,
+)
+
+/**
+ * Static metadata for a supported Woodcutting tree.
  *
- * Resource item IDs, XP, requirements, depletion and respawn metadata
- * will be added incrementally as those mechanics are implemented.
+ * Location IDs remain explicitly revision-verified rather than relying on
+ * broad historical RSPS ID lists.
  */
 internal data class WoodcuttingTree(
+    val type: WoodcuttingTreeType,
     val name: String,
     val locIds: Set<Int>,
+    val requiredLevel: Int,
+    val reward: WoodcuttingReward?,
 ) {
+
+    init {
+        require(requiredLevel >= 1) {
+            "Woodcutting tree level must be positive."
+        }
+    }
 
     fun matches(
         locId: Int,
@@ -22,49 +49,83 @@ internal data class WoodcuttingTree(
     companion object {
 
         /**
-         * Revision-240 regular tree variants observed:
+         * Verified revision-240 variants:
          *
          * tree  = 1276
          * tree2 = 1278
+         *
+         * Regular trees require level 1 and produce normal logs.
          */
         val REGULAR =
             WoodcuttingTree(
-                name = "Tree",
+                type =
+                    WoodcuttingTreeType.REGULAR,
+                name =
+                    "Tree",
                 locIds =
                     setOf(
                         1276,
                         1278,
                     ),
+                requiredLevel =
+                    1,
+                reward =
+                    WoodcuttingReward(
+                        itemId = 1511,
+                        itemName = "logs",
+                        experience = 25,
+                    ),
             )
 
         /**
-         * Revision-240 oak tree observed:
+         * Verified revision-240 oak:
          *
          * oaktree = 10820
+         *
+         * Oak chopping itself is enabled in a later step once fractional XP
+         * handling is defined cleanly for the generic skill model.
          */
         val OAK =
             WoodcuttingTree(
-                name = "Oak tree",
+                type =
+                    WoodcuttingTreeType.OAK,
+                name =
+                    "Oak tree",
                 locIds =
                     setOf(
                         10820,
                     ),
+                requiredLevel =
+                    15,
+                reward =
+                    null,
             )
 
         /**
-         * Revision-240 willow variants observed:
+         * Verified revision-240 Willow variants captured so far:
          *
-         * willowtree  = 10819
+         * willowtree   = 10819
+         * willow_tree2 = 10829
          * willow_tree3 = 10831
+         * willow_tree4 = 10833
          */
         val WILLOW =
             WoodcuttingTree(
-                name = "Willow tree",
+                type =
+                    WoodcuttingTreeType.WILLOW,
+                name =
+                    "Willow tree",
                 locIds =
                     setOf(
                         10819,
+                        10829,
                         10831,
+                        10833,
                     ),
+                requiredLevel =
+                    30,
+                reward =
+                    null,
             )
 
         val entries:

@@ -4,9 +4,9 @@ import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 
 /**
- * Per-player transient Woodcutting state.
+ * Transient per-player Woodcutting state.
  *
- * Active interactions are deliberately not persisted.
+ * Active skilling interactions must never be persisted across logout.
  */
 internal class WoodcuttingState {
 
@@ -14,22 +14,38 @@ internal class WoodcuttingState {
         WoodcuttingTarget? =
         null
 
+    var action:
+        WoodcuttingAction? =
+        null
+
     fun clear() {
         target = null
+        action = null
     }
 }
 
 /**
- * Tree currently selected by the player.
+ * Tree selected by the player.
  *
- * [approachPosition] is the exact collision-safe tile selected by the
- * movement system for this interaction.
+ * [approachPosition] is the exact collision-safe endpoint selected by the
+ * movement system.
  */
 internal data class WoodcuttingTarget(
     val tree: WoodcuttingTree,
     val locId: Int,
     val position: WorldPosition,
-    var approachPosition: WorldPosition? = null,
+    var approachPosition:
+        WorldPosition? = null,
+)
+
+/**
+ * Active chopping loop.
+ */
+internal data class WoodcuttingAction(
+    val target: WoodcuttingTarget,
+    val approachPosition: WorldPosition,
+    var axe: WoodcuttingAxe,
+    var ticksUntilRoll: Int,
 )
 
 internal val Player.woodcuttingState:

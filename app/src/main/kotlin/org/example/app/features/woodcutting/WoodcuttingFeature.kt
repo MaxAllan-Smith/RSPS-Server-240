@@ -5,28 +5,32 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
-import org.example.app.core.player.sendGameMessage
-import org.example.app.core.skills.Skill
 import org.example.app.features.movement.MovementService
 
 /**
- * Woodcutting interaction vertical slice.
+ * Woodcutting vertical slice.
  *
- * Current responsibilities:
+ * Responsibilities:
  *
- * - identify supported trees;
- * - route to a collision-safe interaction tile;
- * - detect arrival;
- * - resolve a usable axe.
- *
- * Chopping actions, rewards and depletion are implemented separately.
+ * - consume Chop-down loc interactions;
+ * - identify supported tree definitions;
+ * - route the player to a collision-safe interaction tile;
+ * - hand control to WoodcuttingActionService after arrival;
+ * - advance active Woodcutting actions once per game cycle.
  */
 class WoodcuttingFeature(
-    private val movement: MovementService,
+    private val movement:
+        MovementService,
 ) : Feature {
 
     private val axeService =
         WoodcuttingAxeService()
+
+    private val actionService =
+        WoodcuttingActionService(
+            axeService =
+                axeService,
+        )
 
     override val id: String =
         "woodcutting"
@@ -43,6 +47,12 @@ class WoodcuttingFeature(
             }
         }
 
+        /*
+         * Movement runs first at priority 10.
+         *
+         * Woodcutting executes afterwards so arrival or interruption caused by
+         * movement during this cycle is observed immediately.
+         */
         registrar.onCycleStart(
             priority =
                 WOODCUTTING_PRIORITY,
@@ -52,8 +62,8 @@ class WoodcuttingFeature(
                 context.players.snapshot()
             ) {
                 if (!player.isDisconnected) {
-                    processTarget(
-                        player = player,
+                    processPlayer(
+                        player
                     )
                 }
             }
@@ -77,6 +87,18 @@ class WoodcuttingFeature(
             )
                 ?: return
 
+        val state =
+            player.woodcuttingState
+
+        /*
+         * Selecting another tree replaces any previous walking/chopping
+         * interaction.
+         */
+        actionService.cancel(
+            player = player,
+            state = state,
+        )
+
         val target =
             WoodcuttingTarget(
                 tree = tree,
@@ -90,7 +112,7 @@ class WoodcuttingFeature(
                     ),
             )
 
-        player.woodcuttingState.target =
+        state.target =
             target
 
         println(
@@ -118,8 +140,7 @@ class WoodcuttingFeature(
             )
 
         if (approach == null) {
-            player.woodcuttingState
-                .clear()
+            state.clear()
 
             println(
                 "[Woodcutting] '${player.username}' could not reach " +
@@ -134,18 +155,26 @@ class WoodcuttingFeature(
 
         target.approachPosition =
             approach
-
-        /*
-         * The player may already be standing on the selected interaction
-         * tile. processTarget handles that on the same/next cycle.
-         */
     }
 
-    private fun processTarget(
+    private fun processPlayer(
         player: Player,
     ) {
         val state =
             player.woodcuttingState
+
+        /*
+         * Once chopping has begun the action service owns this player's
+         * Woodcutting state until success, interruption or cancellation.
+         */
+        if (state.action != null) {
+            actionService.cycle(
+                player = player,
+                state = state,
+            )
+
+            return
+        }
 
         val target =
             state.target
@@ -176,68 +205,10 @@ class WoodcuttingFeature(
                 "${approach.z}."
         )
 
-        validateAxe(
+        actionService.start(
             player = player,
+            state = state,
             target = target,
-        )
-
-        state.clear()
-    }
-
-    private fun validateAxe(
-        player: Player,
-        target: WoodcuttingTarget,
-    ) {
-        val selection =
-            axeService.findBestUsable(
-                player = player,
-            )
-
-        if (selection != null) {
-            println(
-                "[Woodcutting] '${player.username}' ready to chop " +
-                    "${target.tree.name} using " +
-                    "${selection.axe.name} " +
-                    "from ${selection.source.description}."
-            )
-
-            return
-        }
-
-        val available =
-            axeService.findBestAvailable(
-                player = player,
-            )
-
-        if (available == null) {
-            player.sendGameMessage(
-                "You do not have an axe which you can use."
-            )
-
-            println(
-                "[Woodcutting] '${player.username}' has no axe " +
-                    "available for ${target.tree.name}."
-            )
-
-            return
-        }
-
-        val currentLevel =
-            player.skills.currentLevel(
-                Skill.WOODCUTTING
-            )
-
-        player.sendGameMessage(
-            "You need a Woodcutting level of " +
-                "${available.axe.woodcuttingLevel} " +
-                "to use a ${available.axe.name.lowercase()}."
-        )
-
-        println(
-            "[Woodcutting] '${player.username}' cannot use " +
-                "${available.axe.name}: " +
-                "woodcutting=$currentLevel, " +
-                "required=${available.axe.woodcuttingLevel}."
         )
     }
 
@@ -245,12 +216,6 @@ class WoodcuttingFeature(
         const val CHOP_OPTION: Int =
             1
 
-        /*
-         * Three tiles is deliberately a small interaction search window.
-         *
-         * It handles larger static loc footprints without allowing
-         * interactions from arbitrary distances.
-         */
         const val MAXIMUM_INTERACTION_RADIUS: Int =
             3
 
