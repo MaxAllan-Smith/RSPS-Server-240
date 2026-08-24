@@ -48,6 +48,9 @@ internal class InterfaceFeature(
     private val combatEquipmentHandler =
         CombatEquipmentHandler()
 
+    private val equipmentInteractionSyncService =
+        EquipmentInteractionSyncService()
+
     override val id: String =
         "interfaces"
 
@@ -86,15 +89,25 @@ internal class InterfaceFeature(
                     packet = packet,
                 )
 
-                combatInventoryHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
+                val inventoryChanged =
+                    combatInventoryHandler.handle(
+                        player = this,
+                        packet = packet,
+                    )
 
-                combatEquipmentHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
+                val equipmentChanged =
+                    combatEquipmentHandler.handle(
+                        player = this,
+                        packet = packet,
+                    )
+
+                if (
+                    inventoryChanged ||
+                    equipmentChanged
+                ) {
+                    equipmentInteractionSyncService
+                        .synchronize(this)
+                }
             }
         }
 

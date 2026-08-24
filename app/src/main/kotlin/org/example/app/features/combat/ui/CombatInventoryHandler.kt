@@ -13,23 +13,23 @@ internal class CombatInventoryHandler(
     fun handle(
         player: Player,
         packet: If3Button,
-    ) {
+    ): Boolean {
         if (
             packet.interfaceId != INVENTORY_INTERFACE ||
             packet.componentId != INVENTORY_COMPONENT ||
             packet.op != WIELD_OP
         ) {
-            return
+            return false
         }
 
         if (
             packet.sub !in
                 0 until PlayerInventory.CAPACITY
         ) {
-            return
+            return false
         }
 
-        equipService.wield(
+        return equipService.wield(
             player = player,
             inventorySlot = packet.sub,
             expectedItemId = packet.obj,

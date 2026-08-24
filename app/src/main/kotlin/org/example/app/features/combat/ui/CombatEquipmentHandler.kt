@@ -13,22 +13,22 @@ internal class CombatEquipmentHandler(
     fun handle(
         player: Player,
         packet: If3Button,
-    ) {
+    ): Boolean {
         if (
             packet.interfaceId != EQUIPMENT_INTERFACE ||
             packet.componentId != WEAPON_COMPONENT ||
             packet.op != REMOVE_OP
         ) {
-            return
+            return false
         }
 
         val equippedWeapon =
             player.equipment[
                 EquipmentSlot.WEAPON
             ]
-                ?: return
+                ?: return false
 
-        equipService.unequip(
+        return equipService.unequip(
             player = player,
             itemId = equippedWeapon.id,
         )
