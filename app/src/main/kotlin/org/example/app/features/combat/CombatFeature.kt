@@ -22,22 +22,5 @@ internal class CombatFeature : Feature {
         registrar.command(
             commandHandler::handle
         )
-
-        registrar.beforeInfoUpdate(
-            priority = COMBAT_PRIORITY,
-        ) { _, player ->
-            val state =
-                player.combatState
-
-            if (!state.initialized) {
-                interfaceService.setUnarmed(player)
-
-                state.initialized = true
-            }
-        }
-    }
-
-    private companion object {
-        const val COMBAT_PRIORITY: Int = 80
     }
 }
