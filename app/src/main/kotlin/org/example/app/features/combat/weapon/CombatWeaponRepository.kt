@@ -26,11 +26,13 @@ internal class CombatWeaponRepository(
                     itemId = 1351,
                     category = CombatWeaponCategory.AXE,
                     equipmentSlot = EquipmentSlot.WEAPON,
+                    attackLevelRequirement = 1,
                 ),
                 CombatWeaponDefinition(
                     itemId = 4151,
                     category = CombatWeaponCategory.WHIP,
                     equipmentSlot = EquipmentSlot.WEAPON,
+                    attackLevelRequirement = 70,
                 ),
             )
     }

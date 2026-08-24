@@ -7,4 +7,11 @@ internal data class CombatWeaponDefinition(
     val itemId: Int,
     val category: CombatWeaponCategory,
     val equipmentSlot: EquipmentSlot,
-)
+    val attackLevelRequirement: Int,
+) {
+    init {
+        require(attackLevelRequirement >= 1) {
+            "Attack level requirement must be positive."
+        }
+    }
+}

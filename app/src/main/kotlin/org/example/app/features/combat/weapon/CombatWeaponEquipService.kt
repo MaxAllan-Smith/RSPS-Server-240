@@ -1,6 +1,7 @@
 package org.example.app.features.combat.weapon
 
 import org.example.app.core.player.Player
+import org.example.app.core.skills.Skill
 
 internal class CombatWeaponEquipService(
     private val weaponRepository: CombatWeaponRepository =
@@ -35,6 +36,25 @@ internal class CombatWeaponEquipService(
             println(
                 "[Combat] '${player.username}' cannot wield " +
                     "unsupported weapon item=${item.id}."
+            )
+
+            return false
+        }
+
+        val attackLevel =
+            player.skills.baseLevel(
+                Skill.ATTACK,
+            )
+
+        if (
+            attackLevel <
+                definition.attackLevelRequirement
+        ) {
+            println(
+                "[Combat] '${player.username}' cannot wield " +
+                    "item=${item.id}; requires Attack " +
+                    "${definition.attackLevelRequirement}, " +
+                    "player has $attackLevel."
             )
 
             return false
