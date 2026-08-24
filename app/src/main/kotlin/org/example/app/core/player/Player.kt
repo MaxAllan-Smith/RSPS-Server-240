@@ -2,6 +2,7 @@ package org.example.app.core.player
 
 import net.rsprot.protocol.api.Session
 import net.rsprot.protocol.game.outgoing.info.Infos
+import org.example.app.core.equipment.PlayerEquipment
 import org.example.app.core.feature.FeatureStateStore
 import org.example.app.core.skills.PlayerSkills
 import org.example.app.core.vars.PlayerVars
@@ -13,8 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * Feature-specific state belongs in [featureState], not as fields here.
  *
- * Generic RuneScape player capabilities, such as vars/varbits, belong directly
- * on the player because they are shared infrastructure used by many features.
+ * Generic RuneScape player capabilities, such as vars/varbits, skills and
+ * equipment, belong directly on the player because they are shared
+ * infrastructure used by many features.
  */
 class Player(
     val username: String,
@@ -25,19 +27,26 @@ class Player(
     val resizable: Boolean,
     varbitDefinitions: VarbitDefinitionRepository,
 ) {
-    private val disconnected = AtomicBoolean(false)
+    private val disconnected =
+        AtomicBoolean(false)
 
-    private var disconnectHandler: ((String) -> Unit)? = null
+    private var disconnectHandler: ((String) -> Unit)? =
+        null
 
-    val featureState = FeatureStateStore()
+    val featureState =
+        FeatureStateStore()
 
     val vars =
         PlayerVars(
             player = this,
             definitions = varbitDefinitions,
         )
-        
-    val skills = PlayerSkills()
+
+    val skills =
+        PlayerSkills()
+
+    val equipment =
+        PlayerEquipment()
 
     internal fun setDisconnectHandler(
         handler: (String) -> Unit,
