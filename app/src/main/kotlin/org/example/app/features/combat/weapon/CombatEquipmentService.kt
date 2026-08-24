@@ -13,9 +13,28 @@ internal class CombatEquipmentService(
     private val interfaceService: CombatInterfaceService,
 ) {
 
+    private val synchronizedRevisions =
+        mutableMapOf<Int, Int>()
+
     fun synchronize(
         player: Player,
     ) {
+        val currentRevision =
+            player.equipment.revision
+
+        val previousRevision =
+            synchronizedRevisions[player.index]
+
+        if (
+            previousRevision != null &&
+            previousRevision == currentRevision
+        ) {
+            return
+        }
+
+        synchronizedRevisions[player.index] =
+            currentRevision
+
         val equippedWeapon =
             player.equipment[
                 EquipmentSlot.WEAPON
@@ -30,53 +49,9 @@ internal class CombatEquipmentService(
             player = player,
         )
 
-        val definition =
-            equippedWeapon
-                ?.let { weapon ->
-                    weaponRepository.find(
-                        weapon.id,
-                    )
-                }
-
-        val category =
-            definition?.category
-                ?: CombatWeaponCategory.UNARMED
-
-        if (
-            player.combatState.weaponCategory ==
-                category
-        ) {
-            return
-        }
-
-        interfaceService.setWeaponCategory(
+        synchronizeCombatCategory(
             player = player,
-            category = category,
-        )
-
-        if (equippedWeapon == null) {
-            println(
-                "[Combat] '${player.username}' detected no " +
-                    "equipped weapon; using unarmed."
-            )
-
-            return
-        }
-
-        if (definition == null) {
-            println(
-                "[Combat] '${player.username}' equipped " +
-                    "unsupported weapon item=${equippedWeapon.id}; " +
-                    "using unarmed."
-            )
-
-            return
-        }
-
-        println(
-            "[Combat] '${player.username}' equipped " +
-                "weapon item=${equippedWeapon.id}, " +
-                "category=${definition.category.id}."
+            itemId = equippedWeapon?.id,
         )
     }
 
@@ -124,7 +99,59 @@ internal class CombatEquipmentService(
                         count = item.amount,
                     )
                 }
-            }
+            },
+        )
+    }
+
+    private fun synchronizeCombatCategory(
+        player: Player,
+        itemId: Int?,
+    ) {
+        val definition =
+            itemId
+                ?.let {
+                    weaponRepository.find(it)
+                }
+
+        val category =
+            definition?.category
+                ?: CombatWeaponCategory.UNARMED
+
+        if (
+            player.combatState.weaponCategory ==
+                category
+        ) {
+            return
+        }
+
+        interfaceService.setWeaponCategory(
+            player = player,
+            category = category,
+        )
+
+        if (itemId == null) {
+            println(
+                "[Combat] '${player.username}' detected no " +
+                    "equipped weapon; using unarmed."
+            )
+
+            return
+        }
+
+        if (definition == null) {
+            println(
+                "[Combat] '${player.username}' equipped " +
+                    "unsupported weapon item=$itemId; " +
+                    "using unarmed."
+            )
+
+            return
+        }
+
+        println(
+            "[Combat] '${player.username}' equipped " +
+                "weapon item=$itemId, " +
+                "category=${definition.category.id}."
         )
     }
 
