@@ -1,5 +1,7 @@
 package org.example.app.features
 
+import org.example.app.core.experience.ExperienceConfig
+import org.example.app.core.experience.ExperienceService
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureDependencies
 import org.example.app.features.chat.ChatFeature
@@ -16,10 +18,10 @@ import org.example.app.features.world.WorldBootstrapFeature
 import org.example.app.features.world.WorldLocService
 
 /**
- * Application composition root for vertical gameplay features.
+ * Application composition root for gameplay features.
  *
- * Cross-feature runtime services are created once here and explicitly shared
- * by the features that consume them.
+ * Cross-feature services are created once here and explicitly shared with the
+ * vertical slices that consume them.
  */
 object FeatureCatalog {
 
@@ -27,10 +29,6 @@ object FeatureCatalog {
         dependencies:
             FeatureDependencies,
     ): List<Feature> {
-        /*
-         * One authoritative movement service means walking clicks and gameplay
-         * interactions manipulate the same route queue.
-         */
         val movement =
             MovementService(
                 planner =
@@ -40,14 +38,24 @@ object FeatureCatalog {
                     ),
             )
 
-        /*
-         * One world-loc runtime service means every feature sees the same
-         * temporary world state.
-         *
-         * Mining, doors, Farming, etc. can reuse this later.
-         */
         val worldLocs =
             WorldLocService()
+
+        /*
+         * Global gameplay XP configuration.
+         *
+         * Change this one value later, or replace it with a DB/config-backed
+         * setting, to modify gameplay XP across every feature using this
+         * service.
+         */
+        val experience =
+            ExperienceService(
+                config =
+                    ExperienceConfig(
+                        globalRatePercent =
+                            100,
+                    ),
+            )
 
         return listOf(
             LoginFeature(),
@@ -69,8 +77,12 @@ object FeatureCatalog {
             WoodcuttingFeature(
                 movement =
                     movement,
+
                 worldLocs =
                     worldLocs,
+
+                experience =
+                    experience,
             ),
 
             CombatFeature(

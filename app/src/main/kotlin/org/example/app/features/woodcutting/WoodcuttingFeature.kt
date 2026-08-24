@@ -2,6 +2,7 @@ package org.example.app.features.woodcutting
 
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
 import org.example.app.core.engine.GameContext
+import org.example.app.core.experience.ExperienceService
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.player.Player
@@ -12,14 +13,12 @@ import org.example.app.features.world.WorldLocService
 /**
  * Woodcutting vertical slice.
  *
- * Responsibilities:
+ * Handles:
  *
- * - consume Chop-down loc interactions;
- * - identify supported trees;
- * - reject currently depleted runtime locs;
- * - route to a collision-safe interaction tile;
- * - hand control to WoodcuttingActionService;
- * - advance active actions once per game cycle.
+ * - tree selection;
+ * - routing;
+ * - shared resource lifetime tracking;
+ * - active chopping actions.
  */
 class WoodcuttingFeature(
     private val movement:
@@ -27,10 +26,16 @@ class WoodcuttingFeature(
 
     private val worldLocs:
         WorldLocService,
+
+    private val experience:
+        ExperienceService,
 ) : Feature {
 
     private val axeService =
         WoodcuttingAxeService()
+
+    private val resources =
+        WoodcuttingResourceService()
 
     private val actionService =
         WoodcuttingActionService(
@@ -39,6 +44,12 @@ class WoodcuttingFeature(
 
             worldLocs =
                 worldLocs,
+
+            resources =
+                resources,
+
+            experience =
+                experience,
         )
 
     override val id: String =
@@ -56,29 +67,43 @@ class WoodcuttingFeature(
             }
         }
 
-        /*
-         * Movement runs at priority 10.
-         *
-         * Woodcutting executes afterwards so arrival/interruption caused by
-         * movement in the same cycle is seen immediately.
-         */
         registrar.onCycleStart(
             priority =
                 WOODCUTTING_PRIORITY,
         ) { context ->
+            processCycle(
+                context
+            )
+        }
+    }
+
+    private fun processCycle(
+        context: GameContext,
+    ) {
+        /*
+         * Shared timer resources must only advance once per world game cycle,
+         * even when several players chop the same tree.
+         */
+        resources.beginCycle()
+
+        try {
             for (
                 player in
                 context.players.snapshot()
             ) {
                 if (
-                    !player.isDisconnected
+                    player.isDisconnected
                 ) {
-                    processPlayer(
-                        context = context,
-                        player = player,
-                    )
+                    continue
                 }
+
+                processPlayer(
+                    context = context,
+                    player = player,
+                )
             }
+        } finally {
+            resources.endCycle()
         }
     }
 
@@ -104,43 +129,29 @@ class WoodcuttingFeature(
             WorldPosition(
                 x =
                     packet.x,
+
                 z =
                     packet.z,
+
                 level =
                     player.position.level,
             )
 
-        /*
-         * The client normally cannot send Chop-down for our stump because the
-         * stump has no enabled ops, but the server still validates runtime
-         * state rather than trusting the client.
-         */
         if (
             worldLocs.isOverridden(
                 position =
                     position,
+
                 shape =
                     tree.locShape,
             )
         ) {
-            println(
-                "[Woodcutting] '${player.username}' selected a depleted " +
-                    "${tree.name} at " +
-                    "${position.x}," +
-                    "${position.z}," +
-                    "${position.level}."
-            )
-
             return
         }
 
         val state =
             player.woodcuttingState
 
-        /*
-         * Selecting another tree replaces any previous walking or chopping
-         * interaction.
-         */
         actionService.cancel(
             player = player,
             state = state,
@@ -150,8 +161,10 @@ class WoodcuttingFeature(
             WoodcuttingTarget(
                 tree =
                     tree,
+
                 locId =
                     packet.id,
+
                 position =
                     position,
             )
@@ -170,13 +183,18 @@ class WoodcuttingFeature(
 
         val approach =
             movement.requestNear(
-                player = player,
+                player =
+                    player,
+
                 x =
-                    target.position.x,
+                    position.x,
+
                 z =
-                    target.position.z,
+                    position.z,
+
                 maximumRadius =
                     MAXIMUM_INTERACTION_RADIUS,
+
                 keyCombination =
                     if (
                         packet.controlKey
@@ -192,10 +210,7 @@ class WoodcuttingFeature(
 
             println(
                 "[Woodcutting] '${player.username}' could not reach " +
-                    "${tree.name} " +
-                    "at ${packet.x}," +
-                    "${packet.z}," +
-                    "${player.position.level}."
+                    "${tree.name}."
             )
 
             return
@@ -240,7 +255,7 @@ class WoodcuttingFeature(
         }
 
         movement.clear(
-            player = player,
+            player
         )
 
         println(
