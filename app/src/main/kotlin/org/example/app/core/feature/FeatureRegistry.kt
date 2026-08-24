@@ -7,27 +7,48 @@ import org.example.app.core.network.LoginAttempt
 import org.example.app.core.network.ReconnectAttempt
 import org.example.app.core.player.Player
 
-class FeatureRegistry {
-    private val installedFeatureIds = LinkedHashSet<String>()
+typealias FeatureCommandHandler =
+    (Player, String, List<String>) -> Boolean
 
-    private var loginHandler: ((LoginAttempt) -> Unit)? = null
-    private var reconnectHandler: ((ReconnectAttempt) -> Unit)? = null
+class FeatureRegistry {
+    private val installedFeatureIds =
+        LinkedHashSet<String>()
+
+    private var loginHandler: ((LoginAttempt) -> Unit)? =
+        null
+
+    private var reconnectHandler: ((ReconnectAttempt) -> Unit)? =
+        null
 
     private val packetConfigurations =
-        mutableListOf<GameMessageConsumerRepositoryBuilder<Player>.() -> Unit>()
+        mutableListOf<
+            GameMessageConsumerRepositoryBuilder<Player>.() -> Unit
+        >()
+
+    private val commandHandlers =
+        mutableListOf<FeatureCommandHandler>()
 
     private val cycleStartHandlers =
-        mutableListOf<OrderedHandler<(GameContext) -> Unit>>()
+        mutableListOf<
+            OrderedHandler<(GameContext) -> Unit>
+        >()
 
     private val beforeInfoHandlers =
-        mutableListOf<OrderedHandler<(GameContext, Player) -> Unit>>()
+        mutableListOf<
+            OrderedHandler<(GameContext, Player) -> Unit>
+        >()
 
     private val afterInfoHandlers =
-        mutableListOf<OrderedHandler<(GameContext, Player) -> Unit>>()
+        mutableListOf<
+            OrderedHandler<(GameContext, Player) -> Unit>
+        >()
 
-    private var registrationSequence = 0
+    private var registrationSequence =
+        0
 
-    fun install(features: Iterable<Feature>): FeatureRuntime {
+    fun install(
+        features: Iterable<Feature>,
+    ): FeatureRuntime {
         for (feature in features) {
             install(feature)
         }
@@ -37,13 +58,16 @@ class FeatureRegistry {
             loginHandler = loginHandler,
             reconnectHandler = reconnectHandler,
             gameMessages = buildGameMessages(),
+            commandHandlers = commandHandlers.toList(),
             cycleStartHandlers = cycleStartHandlers.sorted(),
             beforeInfoHandlers = beforeInfoHandlers.sorted(),
             afterInfoHandlers = afterInfoHandlers.sorted(),
         )
     }
 
-    private fun install(feature: Feature) {
+    private fun install(
+        feature: Feature,
+    ) {
         require(feature.id.isNotBlank()) {
             "Feature id cannot be blank."
         }
@@ -65,7 +89,8 @@ class FeatureRegistry {
         handler: (LoginAttempt) -> Unit,
     ) {
         check(loginHandler == null) {
-            "Feature '$featureId' attempted to replace the registered login handler."
+            "Feature '$featureId' attempted to replace " +
+                "the registered login handler."
         }
 
         loginHandler = handler
@@ -76,16 +101,24 @@ class FeatureRegistry {
         handler: (ReconnectAttempt) -> Unit,
     ) {
         check(reconnectHandler == null) {
-            "Feature '$featureId' attempted to replace the registered reconnect handler."
+            "Feature '$featureId' attempted to replace " +
+                "the registered reconnect handler."
         }
 
         reconnectHandler = handler
     }
 
     internal fun registerPackets(
-        configuration: GameMessageConsumerRepositoryBuilder<Player>.() -> Unit,
+        configuration:
+            GameMessageConsumerRepositoryBuilder<Player>.() -> Unit,
     ) {
         packetConfigurations += configuration
+    }
+
+    internal fun registerCommand(
+        handler: FeatureCommandHandler,
+    ) {
+        commandHandlers += handler
     }
 
     internal fun registerCycleStart(
@@ -93,7 +126,12 @@ class FeatureRegistry {
         priority: Int,
         handler: (GameContext) -> Unit,
     ) {
-        cycleStartHandlers += ordered(featureId, priority, handler)
+        cycleStartHandlers +=
+            ordered(
+                featureId = featureId,
+                priority = priority,
+                handler = handler,
+            )
     }
 
     internal fun registerBeforeInfo(
@@ -101,7 +139,12 @@ class FeatureRegistry {
         priority: Int,
         handler: (GameContext, Player) -> Unit,
     ) {
-        beforeInfoHandlers += ordered(featureId, priority, handler)
+        beforeInfoHandlers +=
+            ordered(
+                featureId = featureId,
+                priority = priority,
+                handler = handler,
+            )
     }
 
     internal fun registerAfterInfo(
@@ -109,11 +152,18 @@ class FeatureRegistry {
         priority: Int,
         handler: (GameContext, Player) -> Unit,
     ) {
-        afterInfoHandlers += ordered(featureId, priority, handler)
+        afterInfoHandlers +=
+            ordered(
+                featureId = featureId,
+                priority = priority,
+                handler = handler,
+            )
     }
 
-    private fun buildGameMessages(): GameMessageConsumerRepository<Player> {
-        val builder = GameMessageConsumerRepositoryBuilder<Player>()
+    private fun buildGameMessages():
+        GameMessageConsumerRepository<Player> {
+        val builder =
+            GameMessageConsumerRepositoryBuilder<Player>()
 
         for (configuration in packetConfigurations) {
             builder.configuration()
@@ -140,54 +190,76 @@ class FeatureRegistrar internal constructor(
     val featureId: String,
     private val registry: FeatureRegistry,
 ) {
-    /** Registers the single feature responsible for accepting normal logins. */
-    fun onLogin(handler: (LoginAttempt) -> Unit) {
-        registry.registerLoginHandler(featureId, handler)
+
+    // Registers the single feature responsible for accepting normal logins.
+    fun onLogin(
+        handler: (LoginAttempt) -> Unit,
+    ) {
+        registry.registerLoginHandler(
+            featureId = featureId,
+            handler = handler,
+        )
     }
 
-    /** Registers the single feature responsible for reconnect policy. */
-    fun onReconnect(handler: (ReconnectAttempt) -> Unit) {
-        registry.registerReconnectHandler(featureId, handler)
+    // Registers the single feature responsible for reconnect policy.
+    fun onReconnect(
+        handler: (ReconnectAttempt) -> Unit,
+    ) {
+        registry.registerReconnectHandler(
+            featureId = featureId,
+            handler = handler,
+        )
     }
 
-    /**
-     * Adds RSProt incoming message consumers directly to RSProt's repository
-     * builder. Unsupported packets therefore remain undecoded by RSProt.
-     */
+    // Adds RSProt incoming packet consumers.
     fun packets(
-        configuration: GameMessageConsumerRepositoryBuilder<Player>.() -> Unit,
+        configuration:
+            GameMessageConsumerRepositoryBuilder<Player>.() -> Unit,
     ) {
         registry.registerPackets(configuration)
     }
 
-    /** Runs once at the start of a server game cycle. Lower priority runs first. */
+    // Registers a development command owned by this feature.
+    fun command(
+        handler: FeatureCommandHandler,
+    ) {
+        registry.registerCommand(handler)
+    }
+
+    // Runs once at the start of a server game cycle.
     fun onCycleStart(
         priority: Int = 0,
         handler: (GameContext) -> Unit,
     ) {
-        registry.registerCycleStart(featureId, priority, handler)
+        registry.registerCycleStart(
+            featureId = featureId,
+            priority = priority,
+            handler = handler,
+        )
     }
 
-    /**
-     * Runs per player after incoming packets and coordinate sync, but before
-     * RSProt information packets are built.
-     */
+    // Runs before RSProt information packets are built.
     fun beforeInfoUpdate(
         priority: Int = 0,
         handler: (GameContext, Player) -> Unit,
     ) {
-        registry.registerBeforeInfo(featureId, priority, handler)
+        registry.registerBeforeInfo(
+            featureId = featureId,
+            priority = priority,
+            handler = handler,
+        )
     }
 
-    /**
-     * Runs per player after core RSProt information output has been queued and
-     * before the session is flushed.
-     */
+    // Runs after RSProt information output is queued.
     fun afterInfoUpdate(
         priority: Int = 0,
         handler: (GameContext, Player) -> Unit,
     ) {
-        registry.registerAfterInfo(featureId, priority, handler)
+        registry.registerAfterInfo(
+            featureId = featureId,
+            priority = priority,
+            handler = handler,
+        )
     }
 }
 
@@ -196,23 +268,60 @@ class FeatureRuntime internal constructor(
     private val loginHandler: ((LoginAttempt) -> Unit)?,
     private val reconnectHandler: ((ReconnectAttempt) -> Unit)?,
     val gameMessages: GameMessageConsumerRepository<Player>,
-    private val cycleStartHandlers: List<OrderedHandler<(GameContext) -> Unit>>,
-    private val beforeInfoHandlers: List<OrderedHandler<(GameContext, Player) -> Unit>>,
-    private val afterInfoHandlers: List<OrderedHandler<(GameContext, Player) -> Unit>>,
+    private val commandHandlers: List<FeatureCommandHandler>,
+    private val cycleStartHandlers:
+        List<OrderedHandler<(GameContext) -> Unit>>,
+    private val beforeInfoHandlers:
+        List<OrderedHandler<(GameContext, Player) -> Unit>>,
+    private val afterInfoHandlers:
+        List<OrderedHandler<(GameContext, Player) -> Unit>>,
 ) {
-    fun dispatchLogin(attempt: LoginAttempt): Boolean {
-        val handler = loginHandler ?: return false
+
+    fun dispatchLogin(
+        attempt: LoginAttempt,
+    ): Boolean {
+        val handler =
+            loginHandler
+                ?: return false
+
         handler(attempt)
         return true
     }
 
-    fun dispatchReconnect(attempt: ReconnectAttempt): Boolean {
-        val handler = reconnectHandler ?: return false
+    fun dispatchReconnect(
+        attempt: ReconnectAttempt,
+    ): Boolean {
+        val handler =
+            reconnectHandler
+                ?: return false
+
         handler(attempt)
         return true
     }
 
-    fun cycleStart(context: GameContext) {
+    fun dispatchCommand(
+        player: Player,
+        command: String,
+        arguments: List<String>,
+    ): Boolean {
+        for (handler in commandHandlers) {
+            if (
+                handler(
+                    player,
+                    command,
+                    arguments,
+                )
+            ) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    fun cycleStart(
+        context: GameContext,
+    ) {
         for (registration in cycleStartHandlers) {
             registration.handler(context)
         }
@@ -223,7 +332,10 @@ class FeatureRuntime internal constructor(
         player: Player,
     ) {
         for (registration in beforeInfoHandlers) {
-            registration.handler(context, player)
+            registration.handler(
+                context,
+                player,
+            )
         }
     }
 
@@ -232,7 +344,10 @@ class FeatureRuntime internal constructor(
         player: Player,
     ) {
         for (registration in afterInfoHandlers) {
-            registration.handler(context, player)
+            registration.handler(
+                context,
+                player,
+            )
         }
     }
 }
@@ -243,13 +358,21 @@ internal data class OrderedHandler<T>(
     val featureId: String,
     val handler: T,
 ) : Comparable<OrderedHandler<T>> {
-    override fun compareTo(other: OrderedHandler<T>): Int {
-        val priorityComparison = priority.compareTo(other.priority)
+
+    override fun compareTo(
+        other: OrderedHandler<T>,
+    ): Int {
+        val priorityComparison =
+            priority.compareTo(
+                other.priority
+            )
 
         return if (priorityComparison != 0) {
             priorityComparison
         } else {
-            sequence.compareTo(other.sequence)
+            sequence.compareTo(
+                other.sequence
+            )
         }
     }
 }
