@@ -11,6 +11,9 @@ internal class InventoryFeature : Feature {
     private val syncService =
         InventorySyncService()
 
+    private val interfaceService =
+        InventoryInterfaceService()
+
     private val commandHandler =
         InventoryCommandHandler()
 
@@ -22,6 +25,7 @@ internal class InventoryFeature : Feature {
         )
 
         registrar.beforeInfoUpdate { _, player ->
+            interfaceService.initialize(player)
             syncService.synchronize(player)
         }
     }
