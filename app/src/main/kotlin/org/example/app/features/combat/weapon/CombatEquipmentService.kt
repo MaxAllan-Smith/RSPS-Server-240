@@ -19,13 +19,21 @@ internal class CombatEquipmentService(
                 EquipmentSlot.WEAPON
             ]
 
-        val category =
+        synchronizeAppearance(
+            player = player,
+            itemId = equippedWeapon?.id,
+        )
+
+        val definition =
             equippedWeapon
                 ?.let { weapon ->
-                    weaponRepository
-                        .find(weapon.id)
-                        ?.category
+                    weaponRepository.find(
+                        weapon.id,
+                    )
                 }
+
+        val category =
+            definition?.category
                 ?: CombatWeaponCategory.UNARMED
 
         if (
@@ -45,25 +53,50 @@ internal class CombatEquipmentService(
                 "[Combat] '${player.username}' detected no " +
                     "equipped weapon; using unarmed."
             )
-        } else {
-            val definition =
-                weaponRepository.find(
-                    equippedWeapon.id,
-                )
 
-            if (definition == null) {
-                println(
-                    "[Combat] '${player.username}' equipped " +
-                        "unsupported weapon item=${equippedWeapon.id}; " +
-                        "using unarmed."
-                )
-            } else {
-                println(
-                    "[Combat] '${player.username}' equipped " +
-                        "weapon item=${equippedWeapon.id}, " +
-                        "category=${definition.category.id}."
-                )
-            }
+            return
         }
+
+        if (definition == null) {
+            println(
+                "[Combat] '${player.username}' equipped " +
+                    "unsupported weapon item=${equippedWeapon.id}; " +
+                    "using unarmed."
+            )
+
+            return
+        }
+
+        println(
+            "[Combat] '${player.username}' equipped " +
+                "weapon item=${equippedWeapon.id}, " +
+                "category=${definition.category.id}."
+        )
+    }
+
+    private fun synchronizeAppearance(
+        player: Player,
+        itemId: Int?,
+    ) {
+        player.infos
+            .playerInfo
+            .avatar
+            .extendedInfo
+            .setWornObj(
+                wearpos = EquipmentSlot.WEAPON.id,
+                id = itemId ?: EMPTY_ITEM,
+                wearpos2 = NO_SECONDARY_WEARPOS,
+                wearpos3 = NO_TERTIARY_WEARPOS,
+            )
+    }
+
+    private companion object {
+        const val EMPTY_ITEM: Int = -1
+
+        const val NO_SECONDARY_WEARPOS: Int =
+            -1
+
+        const val NO_TERTIARY_WEARPOS: Int =
+            -1
     }
 }
