@@ -8,8 +8,6 @@ import org.example.app.core.player.WorldPosition
 import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
 import org.example.app.features.movement.MovementService
-import kotlin.math.abs
-import kotlin.math.max
 
 /**
  * Woodcutting interaction vertical slice.
@@ -17,13 +15,11 @@ import kotlin.math.max
  * Current responsibilities:
  *
  * - identify supported trees;
- * - remember the selected tree;
- * - route toward the tree;
- * - detect interaction range;
- * - resolve the best usable axe.
+ * - route to a collision-safe interaction tile;
+ * - detect arrival;
+ * - resolve a usable axe.
  *
- * Chopping rolls, animations, resources, XP and tree depletion are
- * introduced in subsequent implementation steps.
+ * Chopping actions, rewards and depletion are implemented separately.
  */
 class WoodcuttingFeature(
     private val movement: MovementService,
@@ -47,15 +43,9 @@ class WoodcuttingFeature(
             }
         }
 
-        /*
-         * Movement currently runs at priority 10.
-         *
-         * Woodcutting executes afterwards so a player who reaches
-         * interaction range during the current cycle can immediately
-         * continue into interaction validation.
-         */
         registrar.onCycleStart(
-            priority = WOODCUTTING_PRIORITY,
+            priority =
+                WOODCUTTING_PRIORITY,
         ) { context ->
             for (
                 player in
@@ -74,7 +64,10 @@ class WoodcuttingFeature(
         player: Player,
         packet: OpLocV2,
     ) {
-        if (packet.op != CHOP_OPTION) {
+        if (
+            packet.op !=
+            CHOP_OPTION
+        ) {
             return
         }
 
@@ -104,28 +97,18 @@ class WoodcuttingFeature(
             "[Woodcutting] '${player.username}' selected " +
                 "${tree.name} " +
                 "id=${packet.id} " +
-                "at ${packet.x},${packet.z}," +
+                "at ${packet.x}," +
+                "${packet.z}," +
                 "${player.position.level}."
         )
 
-        /*
-         * Do not generate another route if the player is already
-         * standing beside the selected tree.
-         */
-        if (
-            isInInteractionRange(
-                player = player,
-                target = target,
-            )
-        ) {
-            return
-        }
-
-        val routed =
-            movement.request(
+        val approach =
+            movement.requestNear(
                 player = player,
                 x = target.position.x,
                 z = target.position.z,
+                maximumRadius =
+                    MAXIMUM_INTERACTION_RADIUS,
                 keyCombination =
                     if (packet.controlKey) {
                         CONTROL_KEY
@@ -134,17 +117,28 @@ class WoodcuttingFeature(
                     },
             )
 
-        if (!routed) {
+        if (approach == null) {
             player.woodcuttingState
                 .clear()
 
             println(
                 "[Woodcutting] '${player.username}' could not reach " +
                     "${tree.name} " +
-                    "at ${packet.x},${packet.z}," +
+                    "at ${packet.x}," +
+                    "${packet.z}," +
                     "${player.position.level}."
             )
+
+            return
         }
+
+        target.approachPosition =
+            approach
+
+        /*
+         * The player may already be standing on the selected interaction
+         * tile. processTarget handles that on the same/next cycle.
+         */
     }
 
     private fun processTarget(
@@ -157,19 +151,17 @@ class WoodcuttingFeature(
             state.target
                 ?: return
 
+        val approach =
+            target.approachPosition
+                ?: return
+
         if (
-            !isInInteractionRange(
-                player = player,
-                target = target,
-            )
+            player.position !=
+            approach
         ) {
             return
         }
 
-        /*
-         * The interaction itself has reached the target, so any
-         * remaining move-near route can be discarded.
-         */
         movement.clear(
             player = player,
         )
@@ -179,7 +171,9 @@ class WoodcuttingFeature(
                 "${target.tree.name} " +
                 "at ${target.position.x}," +
                 "${target.position.z}," +
-                "${target.position.level}."
+                "${target.position.level} " +
+                "from ${approach.x}," +
+                "${approach.z}."
         )
 
         validateAxe(
@@ -247,50 +241,18 @@ class WoodcuttingFeature(
         )
     }
 
-    /**
-     * The currently supported tree definitions occupy one tile.
-     *
-     * Chebyshev distance 1 allows horizontal, vertical or diagonal
-     * interaction while excluding the blocked tree tile itself.
-     *
-     * Once generic loc dimensions are available this can be replaced
-     * by a reusable loc-boundary interaction check.
-     */
-    private fun isInInteractionRange(
-        player: Player,
-        target: WoodcuttingTarget,
-    ): Boolean {
-        if (
-            player.position.level !=
-            target.position.level
-        ) {
-            return false
-        }
-
-        val deltaX =
-            abs(
-                player.position.x -
-                    target.position.x
-            )
-
-        val deltaZ =
-            abs(
-                player.position.z -
-                    target.position.z
-            )
-
-        return max(
-            deltaX,
-            deltaZ,
-        ) == ADJACENT_DISTANCE
-    }
-
     private companion object {
         const val CHOP_OPTION: Int =
             1
 
-        const val ADJACENT_DISTANCE: Int =
-            1
+        /*
+         * Three tiles is deliberately a small interaction search window.
+         *
+         * It handles larger static loc footprints without allowing
+         * interactions from arbitrary distances.
+         */
+        const val MAXIMUM_INTERACTION_RADIUS: Int =
+            3
 
         const val NO_KEYS: Int =
             0

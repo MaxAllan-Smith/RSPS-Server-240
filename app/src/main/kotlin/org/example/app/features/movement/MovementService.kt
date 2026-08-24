@@ -5,22 +5,17 @@ import org.example.app.core.player.WorldPosition
 import org.example.app.features.movement.state.movementState
 
 /**
- * Shared player movement service.
+ * Shared authoritative player movement service.
  *
- * Gameplay features may request routes through this service instead of
- * manipulating player coordinates or movement queues directly.
+ * Ground clicks and gameplay interactions both use the same player route
+ * queue and RSMod collision map.
  */
 class MovementService internal constructor(
     private val planner: RoutePlanner,
 ) {
 
     /**
-     * Replaces the player's current route with a route toward the supplied
-     * absolute world coordinate.
-     *
-     * RSMod is configured to move-near, so destinations occupying blocked
-     * tiles - such as trees and other world objects - resolve to the nearest
-     * reachable tile instead of requiring the player to stand on the object.
+     * Standard ground/minimap movement request.
      */
     fun request(
         player: Player,
@@ -32,30 +27,38 @@ class MovementService internal constructor(
             WorldPosition(
                 x = x,
                 z = z,
-                level = player.position.level,
+                level =
+                    player.position.level,
             )
 
         val route =
             planner.route(
-                start = player.position,
-                destination = destination,
+                start =
+                    player.position,
+                destination =
+                    destination,
             )
 
         val state =
             player.movementState
 
         state.steps.clear()
-        state.steps.addAll(route)
+        state.steps.addAll(
+            route
+        )
+
         state.requestedKeyCombination =
             keyCombination
 
         if (
             route.isEmpty() &&
-            destination != player.position
+            destination !=
+            player.position
         ) {
             println(
                 "[Movement] '${player.username}' could not route " +
-                    "to ${destination.x},${destination.z}," +
+                    "to ${destination.x}," +
+                    "${destination.z}," +
                     "${destination.level}."
             )
 
@@ -66,7 +69,66 @@ class MovementService internal constructor(
     }
 
     /**
-     * Advances the player by one server-authoritative walking tile.
+     * Routes a player to the nearest reachable tile around a location.
+     *
+     * The selected endpoint is returned to the caller so the gameplay
+     * interaction can wait for that exact tile before starting.
+     */
+    fun requestNear(
+        player: Player,
+        x: Int,
+        z: Int,
+        maximumRadius: Int,
+        keyCombination: Int = 0,
+    ): WorldPosition? {
+        val target =
+            WorldPosition(
+                x = x,
+                z = z,
+                level =
+                    player.position.level,
+            )
+
+        val route =
+            planner.routeNear(
+                start =
+                    player.position,
+                target =
+                    target,
+                maximumRadius =
+                    maximumRadius,
+            )
+                ?: run {
+                    clear(
+                        player = player,
+                    )
+
+                    println(
+                        "[Movement] '${player.username}' could not route " +
+                            "near ${target.x}," +
+                            "${target.z}," +
+                            "${target.level}."
+                    )
+
+                    return null
+                }
+
+        val state =
+            player.movementState
+
+        state.steps.clear()
+        state.steps.addAll(
+            route.steps
+        )
+
+        state.requestedKeyCombination =
+            keyCombination
+
+        return route.destination
+    }
+
+    /**
+     * Advances the player by one authoritative walking tile.
      */
     fun cycle(
         player: Player,
@@ -82,7 +144,7 @@ class MovementService internal constructor(
     }
 
     /**
-     * Cancels any currently queued route.
+     * Cancels the current queued route.
      */
     fun clear(
         player: Player,
