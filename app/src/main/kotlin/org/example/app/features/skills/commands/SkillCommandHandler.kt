@@ -1,6 +1,5 @@
 package org.example.app.features.skills.commands
 
-import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import org.example.app.core.player.Player
 import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
@@ -12,48 +11,43 @@ internal class SkillCommandHandler(
 
     fun handle(
         player: Player,
-        packet: ClientCheat,
-    ) {
-        val parts =
-            packet.command
-                .trim()
-                .split(" ")
-                .filter(String::isNotBlank)
-
-        if (parts.firstOrNull()?.lowercase() != COMMAND) {
-            return
+        command: String,
+        arguments: List<String>,
+    ): Boolean {
+        if (command != COMMAND) {
+            return false
         }
 
-        if (parts.size != 3) {
+        if (arguments.size != 2) {
             player.sendGameMessage(
                 "Usage: ::xp <skill> <amount>"
             )
-            return
+            return true
         }
 
         val skill =
             Skill.entries.firstOrNull {
                 it.name.equals(
-                    other = parts[1],
+                    other = arguments[0],
                     ignoreCase = true,
                 )
             }
 
         if (skill == null) {
             player.sendGameMessage(
-                "Unknown skill '${parts[1]}'."
+                "Unknown skill '${arguments[0]}'."
             )
-            return
+            return true
         }
 
         val amount =
-            parts[2].toIntOrNull()
+            arguments[1].toIntOrNull()
 
         if (amount == null || amount < 0) {
             player.sendGameMessage(
-                "Invalid XP amount '${parts[2]}'."
+                "Invalid XP amount '${arguments[1]}'."
             )
-            return
+            return true
         }
 
         val change =
@@ -88,6 +82,8 @@ internal class SkillCommandHandler(
                     "${change.previousLevel} -> ${change.level}."
             )
         }
+
+        return true
     }
 
     private val Skill.displayName: String

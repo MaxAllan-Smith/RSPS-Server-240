@@ -1,6 +1,5 @@
 package org.example.app.features.skills
 
-import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import org.example.app.core.engine.GameContext
 import org.example.app.core.feature.Feature
@@ -40,14 +39,11 @@ internal class SkillsFeature : Feature {
     override fun install(
         registrar: FeatureRegistrar,
     ) {
-        registrar.packets {
-            addListener<ClientCheat> { packet ->
-                skillCommandHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
-            }
+        registrar.command(
+            skillCommandHandler::handle
+        )
 
+        registrar.packets {
             addListener<ResumePauseButton> { packet ->
                 skillLevelUpHandler.handle(
                     player = this,

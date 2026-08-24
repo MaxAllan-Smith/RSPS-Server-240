@@ -1,5 +1,6 @@
 package org.example.app.core.feature
 
+import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepository
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepositoryBuilder
 import org.example.app.core.engine.GameContext
@@ -165,6 +166,14 @@ class FeatureRegistry {
         val builder =
             GameMessageConsumerRepositoryBuilder<Player>()
 
+        builder.addListener<ClientCheat> { packet ->
+            dispatchCommand(
+                handlers = commandHandlers,
+                player = this,
+                rawCommand = packet.command,
+            )
+        }
+
         for (configuration in packetConfigurations) {
             builder.configuration()
         }
@@ -301,23 +310,13 @@ class FeatureRuntime internal constructor(
 
     fun dispatchCommand(
         player: Player,
-        command: String,
-        arguments: List<String>,
-    ): Boolean {
-        for (handler in commandHandlers) {
-            if (
-                handler(
-                    player,
-                    command,
-                    arguments,
-                )
-            ) {
-                return true
-            }
-        }
-
-        return false
-    }
+        rawCommand: String,
+    ): Boolean =
+        dispatchCommand(
+            handlers = commandHandlers,
+            player = player,
+            rawCommand = rawCommand,
+        )
 
     fun cycleStart(
         context: GameContext,
@@ -350,6 +349,40 @@ class FeatureRuntime internal constructor(
             )
         }
     }
+}
+
+private fun dispatchCommand(
+    handlers: List<FeatureCommandHandler>,
+    player: Player,
+    rawCommand: String,
+): Boolean {
+    val parts =
+        rawCommand
+            .trim()
+            .split(" ")
+            .filter(String::isNotBlank)
+
+    val command =
+        parts.firstOrNull()
+            ?.lowercase()
+            ?: return false
+
+    val arguments =
+        parts.drop(1)
+
+    for (handler in handlers) {
+        if (
+            handler(
+                player,
+                command,
+                arguments,
+            )
+        ) {
+            return true
+        }
+    }
+
+    return false
 }
 
 internal data class OrderedHandler<T>(
