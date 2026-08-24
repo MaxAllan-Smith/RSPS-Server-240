@@ -27,6 +27,10 @@ dependencies {
         "com.fasterxml.jackson.module:jackson-module-kotlin:2.19.1"
     )
 
+    implementation(
+        "org.xerial:sqlite-jdbc:3.53.2.1"
+    )
+
     runtimeOnly(
         "ch.qos.logback:logback-classic:1.5.18"
     )

@@ -7,6 +7,8 @@ import org.example.app.core.engine.GameEngine
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistry
 import org.example.app.core.network.RsProtNetworkFactory
+import org.example.app.core.persistence.PlayerPersistenceRepository
+import org.example.app.core.persistence.SqliteDatabase
 import org.example.app.core.player.PlayerManager
 import org.example.app.core.protocol.RsProtInfoSynchronizer
 import org.example.app.core.security.RsaKeyManager
@@ -44,20 +46,38 @@ class ServerApplication(
         val rsa =
             prepareRsa()
 
+        val database =
+            SqliteDatabase(
+                file = config.databaseFile,
+            )
+
+        val persistence =
+            PlayerPersistenceRepository(
+                database = database,
+            )
+
         val huffman =
-            HuffmanLoader.load(cache.directory)
+            HuffmanLoader.load(
+                cache.directory
+            )
 
         val js5 =
-            RsProtJs5Provider.open(cache.directory)
+            RsProtJs5Provider.open(
+                cache.directory
+            )
 
         try {
             val featureRuntime =
                 FeatureRegistry()
-                    .install(features)
+                    .install(
+                        features
+                    )
 
             println(
                 "[Features] Installed: " +
-                    featureRuntime.featureIds.joinToString()
+                    featureRuntime
+                        .featureIds
+                        .joinToString()
             )
 
             val networkService =
@@ -70,7 +90,12 @@ class ServerApplication(
                 ).build()
 
             val playerManager =
-                PlayerManager(networkService)
+                PlayerManager(
+                    networkService =
+                        networkService,
+                    persistence =
+                        persistence,
+                )
 
             val varbitDefinitions =
                 VarbitDefinitionRepository(
@@ -79,10 +104,16 @@ class ServerApplication(
 
             val context =
                 GameContext(
-                    networkService = networkService,
-                    players = playerManager,
-                    varbits = varbitDefinitions,
-                    cacheDirectory = cache.directory,
+                    networkService =
+                        networkService,
+                    players =
+                        playerManager,
+                    varbits =
+                        varbitDefinitions,
+                    persistence =
+                        persistence,
+                    cacheDirectory =
+                        cache.directory,
                 )
 
             val engine =
@@ -93,11 +124,14 @@ class ServerApplication(
                         RsProtInfoSynchronizer(
                             playerManager
                         ),
-                    cycleMillis = config.gameCycleMillis,
+                    cycleMillis =
+                        config.gameCycleMillis,
                 )
 
             try {
-                println("\n[Server] Starting RSProt...")
+                println(
+                    "\n[Server] Starting RSProt..."
+                )
 
                 networkService.start()
                 engine.start()
@@ -115,48 +149,69 @@ class ServerApplication(
 
             installShutdownHook(
                 gameEngine = engine,
-                networkShutdown = networkService::shutdownNow,
+                networkShutdown =
+                    networkService::shutdownNow,
                 js5Provider = js5,
             )
 
-            printOnlineSummary(cache)
+            printOnlineSummary(
+                cache
+            )
 
-            println("\nPress Ctrl+C to stop.")
+            println(
+                "\nPress Ctrl+C to stop."
+            )
 
             shutdownLatch.await()
         } catch (t: Throwable) {
             js5.close()
+
             throw t
         }
     }
 
-    private fun prepareCache(): PreparedCache {
+    private fun prepareCache():
+        PreparedCache {
         val target =
             CacheTarget(
-                major = config.protocolRevision,
-                minor = config.cacheMinorRevision,
-                windowStart = config.patchWindowStart,
+                major =
+                    config.protocolRevision,
+                minor =
+                    config.cacheMinorRevision,
+                windowStart =
+                    config.patchWindowStart,
                 windowEndExclusive =
                     config.patchWindowEndExclusive,
             )
 
         return CacheBootstrap(
-            archiveClient = OpenRs2ArchiveClient(),
-            cacheRoot = config.cacheRootDirectory,
-            cacheDirectory = config.cacheDirectory,
-        ).prepare(target)
+            archiveClient =
+                OpenRs2ArchiveClient(),
+            cacheRoot =
+                config.cacheRootDirectory,
+            cacheDirectory =
+                config.cacheDirectory,
+        ).prepare(
+            target
+        )
     }
 
     private fun prepareRsa() =
-        RsaKeyManager.loadOrCreate(
-            privateKeyFile = config.rsaPrivateKey,
-            publicInfoFile = config.rsaPublicInfo,
-        ).also {
-            println(
-                "\nRSA public information written to: " +
-                    config.rsaPublicInfo.toAbsolutePath()
+        RsaKeyManager
+            .loadOrCreate(
+                privateKeyFile =
+                    config.rsaPrivateKey,
+                publicInfoFile =
+                    config.rsaPublicInfo,
             )
-        }
+            .also {
+                println(
+                    "\nRSA public information written to: " +
+                        config
+                            .rsaPublicInfo
+                            .toAbsolutePath()
+                )
+            }
 
     private fun installShutdownHook(
         gameEngine: GameEngine,
@@ -169,10 +224,11 @@ class ServerApplication(
                 Thread(
                     {
                         if (
-                            !shuttingDown.compareAndSet(
-                                false,
-                                true,
-                            )
+                            !shuttingDown
+                                .compareAndSet(
+                                    false,
+                                    true,
+                                )
                         ) {
                             return@Thread
                         }
@@ -193,7 +249,8 @@ class ServerApplication(
                             "[Server] Shutdown complete."
                         )
 
-                        shutdownLatch.countDown()
+                        shutdownLatch
+                            .countDown()
                     },
                     "server-shutdown",
                 )
@@ -216,6 +273,7 @@ class ServerApplication(
             OpenRS2 cache id  : ${cache.metadata.id}
             Cache timestamp   : ${cache.metadata.timestamp}
             Cache directory   : ${cache.directory.toAbsolutePath()}
+            Database          : ${config.databaseFile.toAbsolutePath()}
             Game cycle        : ${config.gameCycleMillis}ms
             ======================================
             """.trimIndent()

@@ -6,6 +6,7 @@ import net.rsprot.protocol.loginprot.outgoing.LoginResponse
 import net.rsprot.protocol.loginprot.outgoing.util.AuthenticatorResponse
 import org.example.app.core.engine.GameContext
 import org.example.app.core.network.LoginAttempt
+import org.example.app.core.persistence.PlayerSaveData
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 
@@ -78,6 +79,25 @@ internal class LoginProcessor(
             return
         }
 
+        val savedPlayer =
+            try {
+                context.persistence.load(
+                    username
+                )
+            } catch (t: Throwable) {
+                System.err.println(
+                    "[Persistence] Failed to load '$username'."
+                )
+
+                t.printStackTrace()
+
+                responseHandler.writeFailedResponse(
+                    LoginResponse.ConnectFail
+                )
+
+                return
+            }
+
         var infos: Infos? =
             null
 
@@ -92,7 +112,9 @@ internal class LoginProcessor(
                     )
 
             val position =
-                WorldPosition.LUMBRIDGE
+                savedPlayer
+                    ?.position
+                    ?: WorldPosition.LUMBRIDGE
 
             infos.updateRootCoord(
                 position.level,
@@ -151,6 +173,17 @@ internal class LoginProcessor(
                         context.varbits,
                 )
 
+            if (savedPlayer != null) {
+                restore(
+                    player = player,
+                    save = savedPlayer,
+                )
+
+                println(
+                    "[Persistence] Loaded '$username'."
+                )
+            }
+
             if (
                 !context.players.add(
                     player
@@ -205,6 +238,41 @@ internal class LoginProcessor(
                     // Pipeline may already be tearing down.
                 }
             }
+        }
+    }
+
+    private fun restore(
+        player: Player,
+        save: PlayerSaveData,
+    ) {
+        for (
+        (key, value) in
+            save.skillExperience
+        ) {
+            player.skills.setExperience(
+                skill = key,
+                experience = value,
+            )
+        }
+
+        for (
+        (key, value) in
+            save.inventory
+        ) {
+            player.inventory.set(
+                slot = key,
+                item = value,
+            )
+        }
+
+        for (
+        (key, value) in
+            save.equipment
+        ) {
+            player.equipment.set(
+                slot = key,
+                item = value,
+            )
         }
     }
 }

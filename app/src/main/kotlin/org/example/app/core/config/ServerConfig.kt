@@ -37,6 +37,14 @@ data class ServerConfig(
     val rsaPublicInfo: Path =
         rsaDirectory.resolve("game-public.txt")
 
+    val databaseDirectory: Path =
+        dataDirectory.resolve("database")
+
+    val databaseFile: Path =
+        databaseDirectory.resolve(
+            "server.sqlite"
+        )
+
     companion object {
         fun load(): ServerConfig {
             val dataDirectory =
@@ -56,9 +64,13 @@ data class ServerConfig(
                 clientPatch = "240.3",
                 cacheMinorRevision = 3,
                 patchWindowStart =
-                    Instant.parse("2026-08-06T00:00:00Z"),
+                    Instant.parse(
+                        "2026-08-06T00:00:00Z"
+                    ),
                 patchWindowEndExclusive =
-                    Instant.parse("2026-08-17T00:00:00Z"),
+                    Instant.parse(
+                        "2026-08-17T00:00:00Z"
+                    ),
                 dataDirectory = dataDirectory,
                 gameCycleMillis = 600L,
             )
