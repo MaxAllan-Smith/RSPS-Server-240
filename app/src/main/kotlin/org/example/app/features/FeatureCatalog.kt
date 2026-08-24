@@ -9,27 +9,49 @@ import org.example.app.features.inventory.InventoryFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.movement.MovementFeature
 import org.example.app.features.skills.SkillsFeature
+import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
 
-/** Single composition list for all vertical game features. */
+/**
+ * Single composition list for all vertical game features.
+ *
+ * Core networking and the game engine remain independent of concrete
+ * gameplay features.
+ */
 object FeatureCatalog {
+
     fun create(
         dependencies: FeatureDependencies,
     ): List<Feature> =
         listOf(
             LoginFeature(),
             WorldBootstrapFeature(),
+
+            /*
+             * Movement comes before interactive skills because future
+             * object interactions will use the movement system to reach
+             * their targets.
+             */
             MovementFeature(
-                collision = dependencies.collision,
+                collision =
+                    dependencies.collision,
             ),
+
             SkillsFeature(),
             InventoryFeature(),
+
+            WoodcuttingFeature(),
+
             CombatFeature(
-                itemDefinitions = dependencies.itemDefinitions,
+                itemDefinitions =
+                    dependencies.itemDefinitions,
             ),
+
             InterfaceFeature(
-                itemDefinitions = dependencies.itemDefinitions,
+                itemDefinitions =
+                    dependencies.itemDefinitions,
             ),
+
             ChatFeature(),
         )
 }
