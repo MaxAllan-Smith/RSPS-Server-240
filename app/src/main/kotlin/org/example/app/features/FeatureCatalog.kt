@@ -2,6 +2,7 @@ package org.example.app.features
 
 import org.example.app.core.feature.Feature
 import org.example.app.features.chat.ChatFeature
+import org.example.app.features.combat.CombatFeature
 import org.example.app.features.interfaces.InterfaceFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.skills.SkillsFeature
@@ -19,6 +20,7 @@ object FeatureCatalog {
             LoginFeature(),
             WorldBootstrapFeature(),
             SkillsFeature(),
+            CombatFeature(),
             InterfaceFeature(),
             ChatFeature(),
         )
