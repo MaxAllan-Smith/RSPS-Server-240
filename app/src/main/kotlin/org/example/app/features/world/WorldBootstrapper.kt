@@ -12,16 +12,20 @@ import net.rsprot.protocol.game.outgoing.varp.VarpReset
 import org.example.app.core.player.Player
 
 internal object WorldBootstrapper {
-    fun beforeInfoUpdate(player: Player) {
+    /** @return true when the initial login rebuild was queued this cycle. */
+    fun beforeInfoUpdate(player: Player): Boolean {
         val state =
             player.featureState.getOrPut(
                 WorldBootstrapState::class,
                 ::WorldBootstrapState,
             )
 
+        var rebuilt = false
+
         if (state.rebuildPending) {
             queueLoginRebuild(player)
             state.rebuildPending = false
+            rebuilt = true
         }
 
         if (state.clientStatePending) {
@@ -32,6 +36,8 @@ internal object WorldBootstrapper {
             queueInitialClientState(player)
             state.clientStatePending = false
         }
+
+        return rebuilt
     }
 
     fun markMapBuildComplete(player: Player) {
@@ -41,15 +47,11 @@ internal object WorldBootstrapper {
                 ::WorldBootstrapState,
             )
 
-        if (state.mapBuildComplete) {
-            return
-        }
-
+        if (state.mapBuildComplete) return
         state.mapBuildComplete = true
 
         println(
-            "[Map] '${player.username}' finished building " +
-                "the game world at " +
+            "[Map] '${player.username}' finished building the game world at " +
                 "${player.position.x},${player.position.z},${player.position.level}."
         )
     }
@@ -58,8 +60,7 @@ internal object WorldBootstrapper {
         val position = player.position
 
         println(
-            "[Login] Initializing GPI for " +
-                "'${player.username}' index=${player.index}"
+            "[Login] Initializing GPI for '${player.username}' index=${player.index}"
         )
 
         player.session.queue(
@@ -90,10 +91,8 @@ internal object WorldBootstrapper {
         player.session.queue(MinimapToggle(0))
 
         println(
-            "[Login] Initial client state queued for " +
-                "'${player.username}' " +
-                "topLevel=$topLevelInterface " +
-                "resizable=${player.resizable}"
+            "[Login] Initial client state queued for '${player.username}' " +
+                "topLevel=$topLevelInterface resizable=${player.resizable}"
         )
     }
 

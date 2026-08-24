@@ -5,13 +5,15 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 
 /**
- * Initial world/login-scene vertical slice.
+ * Owns login world bootstrap and subsequent normal map rebuilds.
  *
- * It owns the first RebuildLoginV2, initial gameframe/client-state packets and
- * MAP_BUILD_COMPLETE handling. Nothing in the core player model knows these
- * states exist.
+ * Login still uses RebuildLoginV2. After movement crosses the safe center of
+ * the 104x104 scene, WorldMapService emits RebuildNormalV2 and recenters the
+ * RSProt root build area.
  */
 class WorldBootstrapFeature : Feature {
+    private val mapService = WorldMapService()
+
     override val id: String = "world-bootstrap"
 
     override fun install(registrar: FeatureRegistrar) {
@@ -22,7 +24,14 @@ class WorldBootstrapFeature : Feature {
         }
 
         registrar.beforeInfoUpdate { _, player ->
-            WorldBootstrapper.beforeInfoUpdate(player)
+            val loginRebuildQueued =
+                WorldBootstrapper.beforeInfoUpdate(player)
+
+            if (loginRebuildQueued) {
+                mapService.initialize(player)
+            } else {
+                mapService.synchronize(player)
+            }
         }
     }
 }

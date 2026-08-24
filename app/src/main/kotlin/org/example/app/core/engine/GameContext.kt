@@ -1,7 +1,6 @@
 package org.example.app.core.engine
 
 import net.rsprot.protocol.api.NetworkService
-import org.example.app.core.cache.OpenRs2XteaRepository
 import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.persistence.PlayerPersistenceRepository
 import org.example.app.core.player.Player
@@ -11,10 +10,10 @@ import org.example.app.core.world.WorldCollision
 import java.nio.file.Path
 
 /**
- * Runtime services exposed to feature hooks.
+ * Stable runtime services available to feature hooks.
  *
- * Add generic server capabilities here only when they are truly
- * cross-cutting.
+ * Only cross-cutting server capabilities belong here. Feature-owned state lives
+ * in Player.featureState and feature-to-feature details remain outside core.
  */
 data class GameContext(
     val networkService: NetworkService<Player>,
@@ -22,7 +21,6 @@ data class GameContext(
     val varbits: VarbitDefinitionRepository,
     val persistence: PlayerPersistenceRepository,
     val itemDefinitions: ItemDefinitionRepository,
-    val cacheDirectory: Path,
     val collision: WorldCollision,
-    val xteas: OpenRs2XteaRepository
+    val cacheDirectory: Path,
 )

@@ -8,60 +8,35 @@ plugins {
 
 repositories {
     mavenCentral()
-
-    maven(
-        "https://repo.openrs2.org/repository/openrs2-snapshots"
-    )
+    maven("https://repo.openrs2.org/repository/openrs2-snapshots")
 }
 
 dependencies {
-    implementation(
-        "net.rsprot:osrs-240-api:1.0.0-ALPHA-20260815"
-    )
+    // Revision-locked game protocol model/codec.
+    implementation("net.rsprot:osrs-240-api:1.0.0-ALPHA-20260815")
 
-    implementation(
-        "org.openrs2:openrs2-cache:0.1.0-SNAPSHOT"
-    )
+    // OpenRS2 cache filesystem used by the existing cache/bootstrap services.
+    implementation("org.openrs2:openrs2-cache:0.1.0-SNAPSHOT")
 
-    implementation(
-        "com.fasterxml.jackson.module:jackson-module-kotlin:2.19.1"
-    )
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.1")
+    implementation("org.xerial:sqlite-jdbc:3.53.2.1")
 
-    implementation(
-        "org.xerial:sqlite-jdbc:3.53.2.1"
-    )
+    // RuneScape-style BFS routefinding + directional collision semantics.
+    implementation("org.rsmod:rsmod-routefinder:6.0.0")
 
-    implementation(
-        "org.rsmod:rsmod-routefinder:6.0.0"
-    )
-
-    runtimeOnly(
-        "ch.qos.logback:logback-classic:1.5.18"
-    )
-
-    testImplementation(
-        kotlin("test")
-    )
+    runtimeOnly("ch.qos.logback:logback-classic:1.5.18")
+    testImplementation(kotlin("test"))
 }
 
-/*
- * Use JDK 26 for both Java and Kotlin compilation.
- */
 kotlin {
     jvmToolchain(26)
-
     compilerOptions {
-        jvmTarget.set(
-            JvmTarget.JVM_26
-        )
+        jvmTarget.set(JvmTarget.JVM_26)
     }
 }
 
 application {
-    mainClass.set(
-        "org.example.app.AppKt"
-    )
-
+    mainClass.set("org.example.app.AppKt")
     applicationDefaultJvmArgs =
         listOf(
             "--enable-native-access=ALL-UNNAMED",
@@ -69,19 +44,9 @@ application {
         )
 }
 
-/*
- * Run from the repository root rather than app/.
- *
- * This means runtime data such as:
- *
- *     .data/
- *
- * is created alongside gradlew.
- */
+// Keep runtime data (.data/) at repository root instead of app/.
 tasks.named<JavaExec>("run") {
-    workingDir(
-        rootProject.projectDir
-    )
+    workingDir(rootProject.projectDir)
 }
 
 tasks.test {

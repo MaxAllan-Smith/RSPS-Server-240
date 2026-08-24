@@ -1,59 +1,68 @@
-# Feature development
+# Feature architecture
 
-The project uses a vertical-slice architecture.
+The server uses vertical slices: gameplay lives in `features`, while stable
+runtime capabilities live in `core`.
 
-## Core versus features
+## Core
 
-`org.example.app.core` contains stable server plumbing: RSProt transport,
-cache/RSA bootstrap, the single-threaded game cycle, player lifecycle and the
-feature registration API. Core code must not import a class from
-`org.example.app.features`.
+`org.example.app.core` owns infrastructure shared by multiple features:
 
-`org.example.app.features.<feature>` owns a gameplay capability end-to-end:
-packet consumers, feature logic, feature-specific models/state and lifecycle
-hooks.
+- cache/bootstrap and RSA/network setup;
+- single-threaded game/communication loop;
+- player lifecycle and generic player capabilities;
+- SQLite persistence and static item repositories;
+- generic world collision/pathfinding capability;
+- feature registration/composition contracts.
 
-`FeatureCatalog` is the composition list. Adding or removing a feature changes
-that catalog, not the core.
+Core must not import concrete feature implementations.
 
-## Scaffold a new feature
+## Features
+
+`org.example.app.features.<feature>` owns one gameplay capability end-to-end.
+A feature may contain its packet handlers, services, models and per-player
+state without leaking those details into `Player`.
+
+Installed slices currently include:
+
+- login
+- world bootstrap / map build-area streaming
+- movement / routefinding
+- skills
+- inventory
+- combat
+- interfaces
+- chat
+
+`FeatureCatalog` is the only concrete feature composition list.
+`FeatureDependencies` is the core-owned contract used to inject cross-cutting
+services into feature constructors without service locators or static globals.
+
+## Adding a feature
 
 1. Create `org.example.app.features.<name>`.
 2. Add `<Name>Feature : Feature` with a unique `id`.
-3. Keep packet handlers, state and rules in that same package.
-4. Register only the hooks you need in `install`:
-   - `registrar.packets { addListener<Packet> { ... } }`
-   - `registrar.onCycleStart { context -> ... }`
-   - `registrar.beforeInfoUpdate { context, player -> ... }`
-   - `registrar.afterInfoUpdate { context, player -> ... }`
-5. Store per-player feature state with `player.featureState.getOrPut(...)`.
-   Do not add feature flags/fields to core `Player`.
-6. Add one instance of the feature to `FeatureCatalog.all`.
+3. Keep feature-specific handlers/state/rules under that package.
+4. Register only required lifecycle hooks:
+   - `registrar.packets { ... }`
+   - `registrar.onCycleStart { ... }`
+   - `registrar.beforeInfoUpdate { ... }`
+   - `registrar.afterInfoUpdate { ... }`
+5. Store feature-owned player state in `player.featureState`.
+6. Add the feature to `FeatureCatalog.create(...)`.
 
-Example:
+## Ordering
 
-```kotlin
-class ChatFeature : Feature {
-    override val id = "chat"
+Lower numeric hook priorities run first. Use an explicit priority only when
+ordering is meaningful. Movement uses an early cycle-start priority so the new
+position is visible to RSProt's root-coordinate synchronization in that same
+600 ms game cycle.
 
-    override fun install(registrar: FeatureRegistrar) {
-        registrar.packets {
-            addListener<SomeChatPacket> { packet ->
-                // `this` is Player; call chat-slice logic here.
-            }
-        }
-    }
-}
-```
+## Threading
 
-## Ordering rule
+Game-cycle hooks and registered game packet consumers execute on the single
+RSProt communication/game thread. Login callbacks may originate on Netty
+threads, so login uses a queue before mutating game-thread-owned state.
 
-Hooks with lower numeric priority run first. Prefer the default priority `0`.
-Use explicit priorities only when protocol ordering genuinely requires them.
-
-## Threading rule
-
-Feature game-cycle hooks and registered RSProt packet consumers execute on the
-single game/communication thread. Network login callbacks may occur on Netty
-threads, so a feature must queue work (as `LoginFeature` does) before mutating
-game-thread-owned state.
+The movement routefinder is intentionally shared and not thread-safe; this is
+safe because movement packets and game cycles are serialized on that same
+communication thread.
