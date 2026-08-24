@@ -5,33 +5,81 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 
 /**
- * Owns login world bootstrap and subsequent normal map rebuilds.
+ * Owns client world bootstrap, normal scene rebuilding and shared dynamic
+ * world-loc runtime state.
  *
- * Login still uses RebuildLoginV2. After movement crosses the safe center of
- * the 104x104 scene, WorldMapService emits RebuildNormalV2 and recenters the
- * RSProt root build area.
+ * Login still uses RebuildLoginV2. Movement-driven scene transitions use
+ * RebuildNormalV2 through WorldMapService.
+ *
+ * Dynamic world locs are synchronized after either form of scene setup.
  */
-class WorldBootstrapFeature : Feature {
-    private val mapService = WorldMapService()
+class WorldBootstrapFeature(
+    private val worldLocs:
+        WorldLocService,
+) : Feature {
 
-    override val id: String = "world-bootstrap"
+    private val mapService =
+        WorldMapService()
 
-    override fun install(registrar: FeatureRegistrar) {
+    override val id: String =
+        "world-bootstrap"
+
+    override fun install(
+        registrar: FeatureRegistrar,
+    ) {
         registrar.packets {
             addListener<MapBuildComplete> { _ ->
-                WorldBootstrapper.markMapBuildComplete(this)
+                WorldBootstrapper
+                    .markMapBuildComplete(
+                        this
+                    )
             }
         }
 
-        registrar.beforeInfoUpdate { _, player ->
+        /*
+         * World timers advance before movement and gameplay interactions.
+         */
+        registrar.onCycleStart(
+            priority =
+                WORLD_STATE_PRIORITY,
+        ) { context ->
+            worldLocs.cycle(
+                context
+            )
+        }
+
+        registrar.beforeInfoUpdate {
+                _,
+                player,
+            ->
             val loginRebuildQueued =
-                WorldBootstrapper.beforeInfoUpdate(player)
+                WorldBootstrapper
+                    .beforeInfoUpdate(
+                        player
+                    )
 
             if (loginRebuildQueued) {
-                mapService.initialize(player)
+                mapService.initialize(
+                    player
+                )
             } else {
-                mapService.synchronize(player)
+                mapService.synchronize(
+                    player
+                )
             }
+
+            /*
+             * A login/rebuild loads static cache locs first. Runtime overrides
+             * are applied afterwards so depleted trees remain depleted.
+             */
+            worldLocs.synchronize(
+                player
+            )
         }
+    }
+
+    private companion object {
+        const val WORLD_STATE_PRIORITY: Int =
+            0
     }
 }

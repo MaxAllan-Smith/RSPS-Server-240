@@ -1,11 +1,13 @@
 package org.example.app.features.woodcutting
 
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
+import org.example.app.core.engine.GameContext
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 import org.example.app.features.movement.MovementService
+import org.example.app.features.world.WorldLocService
 
 /**
  * Woodcutting vertical slice.
@@ -13,14 +15,18 @@ import org.example.app.features.movement.MovementService
  * Responsibilities:
  *
  * - consume Chop-down loc interactions;
- * - identify supported tree definitions;
- * - route the player to a collision-safe interaction tile;
- * - hand control to WoodcuttingActionService after arrival;
- * - advance active Woodcutting actions once per game cycle.
+ * - identify supported trees;
+ * - reject currently depleted runtime locs;
+ * - route to a collision-safe interaction tile;
+ * - hand control to WoodcuttingActionService;
+ * - advance active actions once per game cycle.
  */
 class WoodcuttingFeature(
     private val movement:
         MovementService,
+
+    private val worldLocs:
+        WorldLocService,
 ) : Feature {
 
     private val axeService =
@@ -30,6 +36,9 @@ class WoodcuttingFeature(
         WoodcuttingActionService(
             axeService =
                 axeService,
+
+            worldLocs =
+                worldLocs,
         )
 
     override val id: String =
@@ -48,10 +57,10 @@ class WoodcuttingFeature(
         }
 
         /*
-         * Movement runs first at priority 10.
+         * Movement runs at priority 10.
          *
-         * Woodcutting executes afterwards so arrival or interruption caused by
-         * movement during this cycle is observed immediately.
+         * Woodcutting executes afterwards so arrival/interruption caused by
+         * movement in the same cycle is seen immediately.
          */
         registrar.onCycleStart(
             priority =
@@ -61,9 +70,12 @@ class WoodcuttingFeature(
                 player in
                 context.players.snapshot()
             ) {
-                if (!player.isDisconnected) {
+                if (
+                    !player.isDisconnected
+                ) {
                     processPlayer(
-                        player
+                        context = context,
+                        player = player,
                     )
                 }
             }
@@ -83,15 +95,50 @@ class WoodcuttingFeature(
 
         val tree =
             WoodcuttingTree.find(
-                locId = packet.id,
+                locId =
+                    packet.id,
             )
                 ?: return
+
+        val position =
+            WorldPosition(
+                x =
+                    packet.x,
+                z =
+                    packet.z,
+                level =
+                    player.position.level,
+            )
+
+        /*
+         * The client normally cannot send Chop-down for our stump because the
+         * stump has no enabled ops, but the server still validates runtime
+         * state rather than trusting the client.
+         */
+        if (
+            worldLocs.isOverridden(
+                position =
+                    position,
+                shape =
+                    tree.locShape,
+            )
+        ) {
+            println(
+                "[Woodcutting] '${player.username}' selected a depleted " +
+                    "${tree.name} at " +
+                    "${position.x}," +
+                    "${position.z}," +
+                    "${position.level}."
+            )
+
+            return
+        }
 
         val state =
             player.woodcuttingState
 
         /*
-         * Selecting another tree replaces any previous walking/chopping
+         * Selecting another tree replaces any previous walking or chopping
          * interaction.
          */
         actionService.cancel(
@@ -101,15 +148,12 @@ class WoodcuttingFeature(
 
         val target =
             WoodcuttingTarget(
-                tree = tree,
-                locId = packet.id,
+                tree =
+                    tree,
+                locId =
+                    packet.id,
                 position =
-                    WorldPosition(
-                        x = packet.x,
-                        z = packet.z,
-                        level =
-                            player.position.level,
-                    ),
+                    position,
             )
 
         state.target =
@@ -127,12 +171,16 @@ class WoodcuttingFeature(
         val approach =
             movement.requestNear(
                 player = player,
-                x = target.position.x,
-                z = target.position.z,
+                x =
+                    target.position.x,
+                z =
+                    target.position.z,
                 maximumRadius =
                     MAXIMUM_INTERACTION_RADIUS,
                 keyCombination =
-                    if (packet.controlKey) {
+                    if (
+                        packet.controlKey
+                    ) {
                         CONTROL_KEY
                     } else {
                         NO_KEYS
@@ -158,17 +206,17 @@ class WoodcuttingFeature(
     }
 
     private fun processPlayer(
+        context: GameContext,
         player: Player,
     ) {
         val state =
             player.woodcuttingState
 
-        /*
-         * Once chopping has begun the action service owns this player's
-         * Woodcutting state until success, interruption or cancellation.
-         */
-        if (state.action != null) {
+        if (
+            state.action != null
+        ) {
             actionService.cycle(
+                context = context,
                 player = player,
                 state = state,
             )

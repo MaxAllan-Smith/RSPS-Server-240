@@ -1,23 +1,36 @@
 package org.example.app.features.woodcutting
 
+import org.example.app.core.engine.GameContext
 import org.example.app.core.items.ItemStack
 import org.example.app.core.player.Player
 import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
+import org.example.app.features.world.WorldLocService
 import kotlin.random.Random
 
 /**
  * Owns the active Woodcutting action loop.
  *
- * Tree selection/routing remains in WoodcuttingFeature. Once the player
- * reaches the selected interaction tile, this service owns validation,
- * animation, success rolls and rewards.
+ * Selection/routing remains in WoodcuttingFeature. Once interaction range is
+ * reached this service owns:
+ *
+ * - requirements;
+ * - tool validation;
+ * - animation;
+ * - resource rolls;
+ * - rewards;
+ * - tree depletion.
  */
 internal class WoodcuttingActionService(
     private val axeService:
         WoodcuttingAxeService,
+
+    private val worldLocs:
+        WorldLocService,
+
     private val random:
-        Random = Random.Default,
+        Random =
+        Random.Default,
 ) {
 
     /**
@@ -28,6 +41,28 @@ internal class WoodcuttingActionService(
         state: WoodcuttingState,
         target: WoodcuttingTarget,
     ) {
+        /*
+         * Another player may have felled the tree while this player was
+         * walking toward it.
+         */
+        if (
+            worldLocs.isOverridden(
+                position =
+                    target.position,
+                shape =
+                    target.tree.locShape,
+            )
+        ) {
+            state.clear()
+
+            println(
+                "[Woodcutting] '${player.username}' could not start " +
+                    "chopping ${target.tree.name}: tree is depleted."
+            )
+
+            return
+        }
+
         val woodcuttingLevel =
             player.skills.currentLevel(
                 Skill.WOODCUTTING
@@ -51,6 +86,7 @@ internal class WoodcuttingActionService(
             )
 
             state.clear()
+
             return
         }
 
@@ -65,6 +101,7 @@ internal class WoodcuttingActionService(
             )
 
             state.clear()
+
             return
         }
 
@@ -73,15 +110,16 @@ internal class WoodcuttingActionService(
 
         val successRate =
             WoodcuttingSuccessRates.find(
-                tree = target.tree,
-                axe = selection.axe,
+                tree =
+                    target.tree,
+                axe =
+                    selection.axe,
             )
 
         /*
-         * Oak/Willow resource loops are intentionally enabled later.
-         *
-         * Their fractional XP values need a generic XP representation rather
-         * than silently rounding game data.
+         * Oak and Willow are recognized/routable, but their resource loops
+         * remain deliberately disabled until fractional XP is represented
+         * globally.
          */
         if (
             reward == null ||
@@ -94,6 +132,7 @@ internal class WoodcuttingActionService(
             )
 
             state.clear()
+
             return
         }
 
@@ -110,30 +149,36 @@ internal class WoodcuttingActionService(
                 .avatar
                 .extendedInfo
 
-        /*
-         * Keep the avatar oriented toward the selected world location while
-         * chopping.
-         */
         extendedInfo.setFaceLoc(
-            x = target.position.x,
-            z = target.position.z,
-            sizeX = 1,
-            sizeZ = 1,
-            instant = false,
-            walkMode = 0,
+            x =
+                target.position.x,
+            z =
+                target.position.z,
+            sizeX =
+                1,
+            sizeZ =
+                1,
+            instant =
+                false,
+            walkMode =
+                0,
         )
 
         extendedInfo.setSequence(
             id =
                 selection.axe.animationId,
-            delay = 0,
+            delay =
+                0,
         )
 
         state.action =
             WoodcuttingAction(
-                target = target,
-                approachPosition = approach,
-                axe = selection.axe,
+                target =
+                    target,
+                approachPosition =
+                    approach,
+                axe =
+                    selection.axe,
                 ticksUntilRoll =
                     ROLL_INTERVAL_TICKS,
             )
@@ -146,9 +191,10 @@ internal class WoodcuttingActionService(
     }
 
     /**
-     * Advances one active Woodcutting action by one server game tick.
+     * Advances one active Woodcutting action by one 600ms game tick.
      */
     fun cycle(
+        context: GameContext,
         player: Player,
         state: WoodcuttingState,
     ) {
@@ -157,8 +203,29 @@ internal class WoodcuttingActionService(
                 ?: return
 
         /*
-         * Walking away interrupts the action.
+         * Shared world state wins over the player's local action.
+         *
+         * This handles another player felling the same tree first.
          */
+        if (
+            worldLocs.isOverridden(
+                position =
+                    action.target.position,
+                shape =
+                    action.target.tree
+                        .locShape,
+            )
+        ) {
+            cancel(
+                player = player,
+                state = state,
+                reason =
+                    "tree depleted",
+            )
+
+            return
+        }
+
         if (
             player.position !=
             action.approachPosition
@@ -174,10 +241,9 @@ internal class WoodcuttingActionService(
         }
 
         /*
-         * Re-resolve the tool while chopping.
+         * Re-resolve the best tool while chopping.
          *
-         * Moving the axe between equipment and inventory remains valid, while
-         * actually losing every usable axe cancels the action.
+         * Moving the same axe between inventory/equipment remains valid.
          */
         val selection =
             axeService.findBestUsable(
@@ -208,7 +274,8 @@ internal class WoodcuttingActionService(
 
             playAnimation(
                 player = player,
-                axe = action.axe,
+                axe =
+                    action.axe,
             )
         }
 
@@ -222,8 +289,10 @@ internal class WoodcuttingActionService(
 
         val successRate =
             WoodcuttingSuccessRates.find(
-                tree = action.target.tree,
-                axe = action.axe,
+                tree =
+                    action.target.tree,
+                axe =
+                    action.axe,
             )
                 ?: run {
                     cancel(
@@ -247,12 +316,10 @@ internal class WoodcuttingActionService(
                 random = random,
             )
         ) {
-            /*
-             * Restart the swing sequence for the next four-tick roll window.
-             */
             playAnimation(
                 player = player,
-                axe = action.axe,
+                axe =
+                    action.axe,
             )
 
             action.ticksUntilRoll =
@@ -262,6 +329,7 @@ internal class WoodcuttingActionService(
         }
 
         reward(
+            context = context,
             player = player,
             state = state,
             action = action,
@@ -270,15 +338,15 @@ internal class WoodcuttingActionService(
 
     /**
      * Explicitly stops any active chopping action.
-     *
-     * Used when another tree is selected and by action interruption.
      */
     fun cancel(
         player: Player,
         state: WoodcuttingState,
         reason: String? = null,
     ) {
-        if (state.action != null) {
+        if (
+            state.action != null
+        ) {
             player.infos
                 .playerInfo
                 .avatar
@@ -300,24 +368,29 @@ internal class WoodcuttingActionService(
     }
 
     private fun reward(
+        context: GameContext,
         player: Player,
         state: WoodcuttingState,
         action: WoodcuttingAction,
     ) {
+        val tree =
+            action.target.tree
+
         val reward =
             checkNotNull(
-                action.target.tree.reward
+                tree.reward
             )
 
-        val added =
-            player.inventory.add(
-                ItemStack(
-                    id = reward.itemId,
-                    amount = 1,
-                )
-            )
-
-        if (!added) {
+        /*
+         * Check capacity before committing the world-state change.
+         *
+         * Once we fell the tree it becomes globally depleted, so we do not
+         * want to do that when the player cannot receive the reward.
+         */
+        if (
+            !player.inventory
+                .hasFreeSlot()
+        ) {
             player.sendGameMessage(
                 "Your inventory is too full to hold any more logs."
             )
@@ -332,9 +405,97 @@ internal class WoodcuttingActionService(
             return
         }
 
+        val stumpId =
+            tree.stumpId
+
+        val respawnRange =
+            tree.respawnTicks
+
+        if (
+            stumpId == null ||
+            respawnRange == null
+        ) {
+            cancel(
+                player = player,
+                state = state,
+                reason =
+                    "missing depletion definition",
+            )
+
+            return
+        }
+
+        val respawnTicks =
+            randomTicks(
+                respawnRange
+            )
+
+        /*
+         * Deplete atomically before awarding the resource.
+         *
+         * If another player has already depleted this exact loc/layer, this
+         * player does not receive another final log from the same resource.
+         */
+        val depleted =
+            worldLocs.replace(
+                context = context,
+
+                originalId =
+                    action.target.locId,
+
+                replacementId =
+                    stumpId,
+
+                position =
+                    action.target.position,
+
+                shape =
+                    tree.locShape,
+
+                rotation =
+                    tree.locRotation,
+
+                respawnTicks =
+                    respawnTicks,
+
+                soundId =
+                    tree.fallSoundId,
+            )
+
+        if (!depleted) {
+            cancel(
+                player = player,
+                state = state,
+                reason =
+                    "tree already depleted",
+            )
+
+            return
+        }
+
+        /*
+         * Capacity was checked immediately before depletion and the game runs
+         * on one authoritative game-engine thread, so this mutation should now
+         * always succeed.
+         */
+        check(
+            player.inventory.add(
+                ItemStack(
+                    id =
+                        reward.itemId,
+                    amount =
+                        1,
+                )
+            )
+        ) {
+            "Inventory capacity changed unexpectedly during Woodcutting reward."
+        }
+
         player.skills.addExperience(
-            skill = Skill.WOODCUTTING,
-            amount = reward.experience,
+            skill =
+                Skill.WOODCUTTING,
+            amount =
+                reward.experience,
         )
 
         player.sendGameMessage(
@@ -345,15 +506,11 @@ internal class WoodcuttingActionService(
             "[Woodcutting] '${player.username}' cut " +
                 "${reward.itemName} " +
                 "item=${reward.itemId}, " +
-                "xp=${reward.experience}."
+                "xp=${reward.experience}; " +
+                "${tree.name} depleted for " +
+                "$respawnTicks ticks."
         )
 
-        /*
-         * A normal tree yields one log before depleting in OSRS.
-         *
-         * Dynamic loc replacement/stump spawning is the next world-state step,
-         * so for now the action ends after the successful log.
-         */
         cancel(
             player = player,
             state = state,
@@ -408,17 +565,35 @@ internal class WoodcuttingActionService(
             .avatar
             .extendedInfo
             .setSequence(
-                id = axe.animationId,
-                delay = 0,
+                id =
+                    axe.animationId,
+                delay =
+                    0,
             )
+    }
+
+    private fun randomTicks(
+        range: IntRange,
+    ): Int {
+        if (
+            range.first ==
+            range.last
+        ) {
+            return range.first
+        }
+
+        return random.nextInt(
+            from =
+                range.first,
+            until =
+                range.last + 1,
+        )
     }
 
     private companion object {
 
         /**
-         * Standard Woodcutting resource roll cadence:
-         *
-         * 4 server game ticks × 600 ms = 2.4 seconds between rolls.
+         * Standard Woodcutting skilling-roll interval.
          */
         const val ROLL_INTERVAL_TICKS: Int =
             4

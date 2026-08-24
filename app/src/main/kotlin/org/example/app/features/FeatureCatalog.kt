@@ -13,22 +13,23 @@ import org.example.app.features.movement.RoutePlanner
 import org.example.app.features.skills.SkillsFeature
 import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
+import org.example.app.features.world.WorldLocService
 
 /**
- * Single application composition point for vertical gameplay features.
+ * Application composition root for vertical gameplay features.
  *
- * Shared cross-feature services are constructed here and explicitly
- * injected into the features that consume them.
+ * Cross-feature runtime services are created once here and explicitly shared
+ * by the features that consume them.
  */
 object FeatureCatalog {
 
     fun create(
-        dependencies: FeatureDependencies,
+        dependencies:
+            FeatureDependencies,
     ): List<Feature> {
         /*
-         * There must only be one authoritative movement service per
-         * application runtime. Both direct movement packets and gameplay
-         * interactions operate on the same route queue.
+         * One authoritative movement service means walking clicks and gameplay
+         * interactions manipulate the same route queue.
          */
         val movement =
             MovementService(
@@ -39,10 +40,22 @@ object FeatureCatalog {
                     ),
             )
 
+        /*
+         * One world-loc runtime service means every feature sees the same
+         * temporary world state.
+         *
+         * Mining, doors, Farming, etc. can reuse this later.
+         */
+        val worldLocs =
+            WorldLocService()
+
         return listOf(
             LoginFeature(),
 
-            WorldBootstrapFeature(),
+            WorldBootstrapFeature(
+                worldLocs =
+                    worldLocs,
+            ),
 
             MovementFeature(
                 movement =
@@ -56,16 +69,20 @@ object FeatureCatalog {
             WoodcuttingFeature(
                 movement =
                     movement,
+                worldLocs =
+                    worldLocs,
             ),
 
             CombatFeature(
                 itemDefinitions =
-                    dependencies.itemDefinitions,
+                    dependencies
+                        .itemDefinitions,
             ),
 
             InterfaceFeature(
                 itemDefinitions =
-                    dependencies.itemDefinitions,
+                    dependencies
+                        .itemDefinitions,
             ),
 
             ChatFeature(),
