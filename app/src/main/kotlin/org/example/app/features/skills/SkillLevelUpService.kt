@@ -18,6 +18,8 @@ internal class SkillLevelUpService {
     ) {
         if (!change.levelledUp) return
 
+        player.skillLevelUpState.record(change)
+
         flashSkillTile(
             player = player,
             skill = change.skill,

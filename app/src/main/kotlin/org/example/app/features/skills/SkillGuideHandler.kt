@@ -41,9 +41,41 @@ internal class SkillGuideHandler {
             Skill.fromStatsComponent(packet.componentId)
                 ?: return
 
+        val unlocks =
+            player.skillLevelUpState.consume(skill)
+
+        if (unlocks != null) {
+            player.vars.setVarbit(
+                id = skill.levelUpFlashVarbitId,
+                value = 0,
+            )
+
+            open(
+                player = player,
+                skill = skill,
+                section = LEVEL_UP_UNLOCKS_SECTION,
+                firstLevel = unlocks.firstLevel,
+                lastLevel = unlocks.lastLevel,
+            )
+
+            println(
+                "[Skills] Opened ${skill.name.lowercase()} " +
+                    "level-up unlocks ${unlocks.firstLevel}.." +
+                    "${unlocks.lastLevel} for '${player.username}'."
+            )
+
+            return
+        }
+
         open(
             player = player,
             skill = skill,
+            section = OVERVIEW_SECTION,
+        )
+
+        println(
+            "[Skills] Opened ${skill.name.lowercase()} " +
+                "skill guide for '${player.username}'."
         )
     }
 
@@ -64,6 +96,9 @@ internal class SkillGuideHandler {
     private fun open(
         player: Player,
         skill: Skill,
+        section: Int,
+        firstLevel: Int = 0,
+        lastLevel: Int = 0,
     ) {
         player.session.queue(
             IfOpenSub(
@@ -91,16 +126,11 @@ internal class SkillGuideHandler {
                 values =
                     listOf(
                         skill.skillGuideId,
-                        DEFAULT_SECTION,
-                        0,
-                        0,
+                        section,
+                        firstLevel,
+                        lastLevel,
                     ),
             )
-        )
-
-        println(
-            "[Skills] Opened ${skill.name.lowercase()} " +
-                "skill guide for '${player.username}'."
         )
     }
 
@@ -134,7 +164,9 @@ internal class SkillGuideHandler {
         const val MAX_TAB_CHILD: Int = 200
 
         const val SKILL_GUIDE_INIT_SCRIPT: Int = 1902
-        const val DEFAULT_SECTION: Int = 0
+
+        const val OVERVIEW_SECTION: Int = 0
+        const val LEVEL_UP_UNLOCKS_SECTION: Int = 31
 
         const val OP1_EVENT: Int = 1
     }
