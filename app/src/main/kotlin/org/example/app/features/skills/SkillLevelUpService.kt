@@ -17,7 +17,13 @@ internal class SkillLevelUpService {
     ) {
         if (!change.levelledUp) return
 
+        flashSkillIcon(
+            player = player,
+            skill = change.skill,
+        )
+
         playFireworks(player)
+
         playSound(
             player = player,
             level = change.level,
@@ -26,6 +32,16 @@ internal class SkillLevelUpService {
         openLevelUpDisplay(
             player = player,
             change = change,
+        )
+    }
+
+    private fun flashSkillIcon(
+        player: Player,
+        skill: Skill,
+    ) {
+        player.vars.setVarbit(
+            id = skill.levelUpFlashVarbitId,
+            value = 1,
         )
     }
 
