@@ -13,5 +13,8 @@ internal value class CombatWeaponCategory(
     companion object {
         val UNARMED =
             CombatWeaponCategory(0)
+
+        val AXE =
+            CombatWeaponCategory(1)
     }
 }
