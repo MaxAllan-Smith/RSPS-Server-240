@@ -1,11 +1,14 @@
 package org.example.app.features.combat.weapon
 
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 
 internal class CombatWeaponEquipService(
     private val weaponRepository: CombatWeaponRepository =
         CombatWeaponRepository(),
+    private val itemDefinitions: ItemDefinitionRepository =
+        CombatItemDefinitions.repository,
 ) {
 
     fun wield(
@@ -27,12 +30,11 @@ internal class CombatWeaponEquipService(
             return false
         }
 
-        val definition =
+        if (
             weaponRepository.find(
                 item.id,
-            )
-
-        if (definition == null) {
+            ) == null
+        ) {
             println(
                 "[Combat] '${player.username}' cannot wield " +
                     "unsupported weapon item=${item.id}."
@@ -41,8 +43,17 @@ internal class CombatWeaponEquipService(
             return false
         }
 
+        val itemDefinition =
+            itemDefinitions[item.id]
+                ?: return false
+
+        val equipmentDefinition =
+            itemDefinition.equipment
+                ?: return false
+
         val unmetRequirement =
-            definition.skillRequirements
+            equipmentDefinition
+                .skillRequirements
                 .firstOrNull { requirement ->
                     player.skills.baseLevel(
                         requirement.skill,
@@ -68,7 +79,7 @@ internal class CombatWeaponEquipService(
 
         val previous =
             player.equipment.set(
-                slot = definition.equipmentSlot,
+                slot = equipmentDefinition.slot,
                 item = item,
             )
 
@@ -89,15 +100,22 @@ internal class CombatWeaponEquipService(
         player: Player,
         itemId: Int,
     ): Boolean {
-        val definition =
+        if (
             weaponRepository.find(
                 itemId,
-            )
+            ) == null
+        ) {
+            return false
+        }
+
+        val equipmentDefinition =
+            itemDefinitions[itemId]
+                ?.equipment
                 ?: return false
 
         val item =
             player.equipment[
-                definition.equipmentSlot
+                equipmentDefinition.slot
             ]
                 ?: return false
 
@@ -115,7 +133,7 @@ internal class CombatWeaponEquipService(
         }
 
         player.equipment.clear(
-            definition.equipmentSlot,
+            equipmentDefinition.slot,
         )
 
         println(
