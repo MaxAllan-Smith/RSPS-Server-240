@@ -66,4 +66,20 @@ internal object CombatWeaponCategories {
                     ),
                 ),
         )
+
+    private val definitions: Map<
+        CombatWeaponCategory,
+        CombatWeaponCategoryDefinition,
+    > =
+        listOf(
+            UNARMED,
+            AXE,
+        ).associateBy {
+            it.category
+        }
+
+    fun find(
+        category: CombatWeaponCategory,
+    ): CombatWeaponCategoryDefinition? =
+        definitions[category]
 }
