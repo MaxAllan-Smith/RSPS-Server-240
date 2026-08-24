@@ -25,7 +25,7 @@ internal class SkillUnlockRepository(
         }
 
         val levels =
-            levelsBySkill[skill.id]
+            levelsBySkill[skill.skillGuideId]
                 ?: return false
 
         return levels.any {
