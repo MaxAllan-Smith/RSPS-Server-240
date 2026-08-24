@@ -1,4 +1,4 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.weapon
 
 internal class CombatWeaponRepository(
     definitions: Iterable<CombatWeaponDefinition>,

@@ -1,4 +1,11 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.weapon
+
+import org.example.app.features.combat.model.CombatAttackType
+import org.example.app.features.combat.model.CombatStance
+import org.example.app.features.combat.model.CombatStyle
+import org.example.app.features.combat.model.CombatStyleDefinition
+import org.example.app.features.combat.model.CombatWeaponCategory
+import org.example.app.features.combat.model.CombatWeaponCategoryDefinition
 
 internal object CombatWeaponCategories {
 

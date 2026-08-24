@@ -1,4 +1,4 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.model
 
 internal data class CombatStyleDefinition(
     val style: CombatStyle,

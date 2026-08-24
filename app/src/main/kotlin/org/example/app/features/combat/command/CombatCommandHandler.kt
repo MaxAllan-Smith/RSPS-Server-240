@@ -1,6 +1,9 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.command
 
 import org.example.app.core.player.Player
+import org.example.app.features.combat.model.CombatWeaponCategory
+import org.example.app.features.combat.style.CombatStyleResolver
+import org.example.app.features.combat.ui.CombatInterfaceService
 
 internal class CombatCommandHandler(
     private val interfaceService: CombatInterfaceService,

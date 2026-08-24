@@ -1,6 +1,8 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.state
 
 import org.example.app.core.player.Player
+import org.example.app.features.combat.model.CombatStyle
+import org.example.app.features.combat.model.CombatWeaponCategory
 
 internal class CombatState {
     var initialized: Boolean = false

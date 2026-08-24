@@ -1,7 +1,9 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.ui
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.player.Player
+import org.example.app.features.combat.model.CombatStyle
+import org.example.app.features.combat.state.combatState
 
 internal class CombatOptionsHandler {
 

@@ -3,7 +3,7 @@ package org.example.app.features.interfaces
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
-import org.example.app.features.combat.CombatOptionsHandler
+import org.example.app.features.combat.ui.CombatOptionsHandler
 import org.example.app.features.interfaces.gameframe.GameframeService
 import org.example.app.features.interfaces.journal.JournalTabHandler
 import org.example.app.features.interfaces.logout.LogoutHandler

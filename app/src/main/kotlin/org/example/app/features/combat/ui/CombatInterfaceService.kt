@@ -1,6 +1,8 @@
-package org.example.app.features.combat
+package org.example.app.features.combat.ui
 
 import org.example.app.core.player.Player
+import org.example.app.features.combat.model.CombatWeaponCategory
+import org.example.app.features.combat.state.combatState
 
 internal class CombatInterfaceService {
 
