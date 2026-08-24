@@ -1,6 +1,7 @@
 package org.example.app.features.skills
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
+import net.rsprot.protocol.game.outgoing.interfaces.IfCloseSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfOpenSub
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
@@ -13,10 +14,25 @@ internal class SkillGuideHandler {
         player: Player,
         packet: If3Button,
     ) {
-        if (packet.interfaceId != STATS_INTERFACE) {
-            return
-        }
+        when (packet.interfaceId) {
+            STATS_INTERFACE ->
+                handleSkillClick(
+                    player = player,
+                    packet = packet,
+                )
 
+            SKILL_GUIDE_INTERFACE ->
+                handleGuideClick(
+                    player = player,
+                    packet = packet,
+                )
+        }
+    }
+
+    private fun handleSkillClick(
+        player: Player,
+        packet: If3Button,
+    ) {
         if (packet.op != OPEN_GUIDE_OP) {
             return
         }
@@ -29,6 +45,20 @@ internal class SkillGuideHandler {
             player = player,
             skill = skill,
         )
+    }
+
+    private fun handleGuideClick(
+        player: Player,
+        packet: If3Button,
+    ) {
+        if (
+            packet.componentId != CLOSE_COMPONENT ||
+            packet.op != CLOSE_OP
+        ) {
+            return
+        }
+
+        close(player)
     }
 
     private fun open(
@@ -74,6 +104,20 @@ internal class SkillGuideHandler {
         )
     }
 
+    private fun close(player: Player) {
+        player.session.queue(
+            IfCloseSub(
+                interfaceId = TOP_LEVEL_INTERFACE,
+                componentId = FLOATER_COMPONENT,
+            )
+        )
+
+        println(
+            "[Skills] Closed skill guide " +
+                "for '${player.username}'."
+        )
+    }
+
     private companion object {
         const val STATS_INTERFACE: Int = 320
         const val OPEN_GUIDE_OP: Int = 2
@@ -83,6 +127,9 @@ internal class SkillGuideHandler {
         const val OVERLAY_TYPE: Int = 1
 
         const val SKILL_GUIDE_INTERFACE: Int = 860
+        const val CLOSE_COMPONENT: Int = 4
+        const val CLOSE_OP: Int = 1
+
         const val TABS_COMPONENT: Int = 7
         const val MAX_TAB_CHILD: Int = 200
 
