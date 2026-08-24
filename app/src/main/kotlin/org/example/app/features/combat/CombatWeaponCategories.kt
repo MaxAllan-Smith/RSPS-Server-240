@@ -20,7 +20,7 @@ internal object CombatWeaponCategories {
                         attackType = CombatAttackType.CRUSH,
                     ),
                     CombatStyleDefinition(
-                        style = CombatStyle.STYLE_2,
+                        style = CombatStyle.STYLE_3,
                         name = "Block",
                         stance = CombatStance.DEFENSIVE,
                         attackType = CombatAttackType.CRUSH,
