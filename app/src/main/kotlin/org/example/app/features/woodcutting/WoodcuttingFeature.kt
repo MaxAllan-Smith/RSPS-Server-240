@@ -5,6 +5,8 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
+import org.example.app.core.player.sendGameMessage
+import org.example.app.core.skills.Skill
 import org.example.app.features.movement.MovementService
 import kotlin.math.abs
 import kotlin.math.max
@@ -12,19 +14,23 @@ import kotlin.math.max
 /**
  * Woodcutting interaction vertical slice.
  *
- * This stage handles:
+ * Current responsibilities:
  *
- * - identifying supported trees;
- * - remembering the selected tree;
- * - routing through the shared movement system;
- * - detecting when interaction range is reached.
+ * - identify supported trees;
+ * - remember the selected tree;
+ * - route toward the tree;
+ * - detect interaction range;
+ * - resolve the best usable axe.
  *
- * Chopping rolls, animations, logs, XP and depletion are intentionally
- * implemented in later stages.
+ * Chopping rolls, animations, resources, XP and tree depletion are
+ * introduced in subsequent implementation steps.
  */
 class WoodcuttingFeature(
     private val movement: MovementService,
 ) : Feature {
+
+    private val axeService =
+        WoodcuttingAxeService()
 
     override val id: String =
         "woodcutting"
@@ -42,10 +48,11 @@ class WoodcuttingFeature(
         }
 
         /*
-         * Movement runs at priority 10.
+         * Movement currently runs at priority 10.
          *
-         * Woodcutting checks interaction range afterwards so a player
-         * reaching the tree during this cycle is recognized immediately.
+         * Woodcutting executes afterwards so a player who reaches
+         * interaction range during the current cycle can immediately
+         * continue into interaction validation.
          */
         registrar.onCycleStart(
             priority = WOODCUTTING_PRIORITY,
@@ -56,7 +63,7 @@ class WoodcuttingFeature(
             ) {
                 if (!player.isDisconnected) {
                     processTarget(
-                        player
+                        player = player,
                     )
                 }
             }
@@ -102,9 +109,8 @@ class WoodcuttingFeature(
         )
 
         /*
-         * If already beside the tree there is no reason to create a
-         * route. The cycle hook will immediately recognize interaction
-         * range.
+         * Do not generate another route if the player is already
+         * standing beside the selected tree.
          */
         if (
             isInInteractionRange(
@@ -161,14 +167,12 @@ class WoodcuttingFeature(
         }
 
         /*
-         * Stop consuming any redundant move-near route tiles once the
-         * player has reached valid interaction distance.
+         * The interaction itself has reached the target, so any
+         * remaining move-near route can be discarded.
          */
         movement.clear(
-            player
+            player = player,
         )
-
-        state.clear()
 
         println(
             "[Woodcutting] '${player.username}' reached " +
@@ -177,16 +181,80 @@ class WoodcuttingFeature(
                 "${target.position.z}," +
                 "${target.position.level}."
         )
+
+        validateAxe(
+            player = player,
+            target = target,
+        )
+
+        state.clear()
+    }
+
+    private fun validateAxe(
+        player: Player,
+        target: WoodcuttingTarget,
+    ) {
+        val selection =
+            axeService.findBestUsable(
+                player = player,
+            )
+
+        if (selection != null) {
+            println(
+                "[Woodcutting] '${player.username}' ready to chop " +
+                    "${target.tree.name} using " +
+                    "${selection.axe.name} " +
+                    "from ${selection.source.description}."
+            )
+
+            return
+        }
+
+        val available =
+            axeService.findBestAvailable(
+                player = player,
+            )
+
+        if (available == null) {
+            player.sendGameMessage(
+                "You do not have an axe which you can use."
+            )
+
+            println(
+                "[Woodcutting] '${player.username}' has no axe " +
+                    "available for ${target.tree.name}."
+            )
+
+            return
+        }
+
+        val currentLevel =
+            player.skills.currentLevel(
+                Skill.WOODCUTTING
+            )
+
+        player.sendGameMessage(
+            "You need a Woodcutting level of " +
+                "${available.axe.woodcuttingLevel} " +
+                "to use a ${available.axe.name.lowercase()}."
+        )
+
+        println(
+            "[Woodcutting] '${player.username}' cannot use " +
+                "${available.axe.name}: " +
+                "woodcutting=$currentLevel, " +
+                "required=${available.axe.woodcuttingLevel}."
+        )
     }
 
     /**
-     * The currently verified trees are one-tile locations.
+     * The currently supported tree definitions occupy one tile.
      *
-     * A player may interact from any horizontally, vertically or
-     * diagonally adjacent tile, but may not occupy the tree tile itself.
+     * Chebyshev distance 1 allows horizontal, vertical or diagonal
+     * interaction while excluding the blocked tree tile itself.
      *
-     * When we later import complete loc dimensions from the cache this
-     * becomes a generic loc-boundary distance check instead.
+     * Once generic loc dimensions are available this can be replaced
+     * by a reusable loc-boundary interaction check.
      */
     private fun isInInteractionRange(
         player: Player,
@@ -211,13 +279,10 @@ class WoodcuttingFeature(
                     target.position.z
             )
 
-        val distance =
-            max(
-                deltaX,
-                deltaZ,
-            )
-
-        return distance == ADJACENT_DISTANCE
+        return max(
+            deltaX,
+            deltaZ,
+        ) == ADJACENT_DISTANCE
     }
 
     private companion object {
@@ -233,10 +298,6 @@ class WoodcuttingFeature(
         const val CONTROL_KEY: Int =
             1
 
-        /*
-         * Movement's cycle hook runs at priority 10. This must execute
-         * afterwards so we inspect the player's newly-updated position.
-         */
         const val WOODCUTTING_PRIORITY: Int =
             20
     }
