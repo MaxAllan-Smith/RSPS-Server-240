@@ -50,6 +50,9 @@ internal class CombatOptionsHandler {
         player: Player,
         style: Int,
     ) {
+        player.combatState.style =
+            style
+
         player.vars.setVarp(
             id = COMBAT_STYLE_VARP,
             value = style,
@@ -64,26 +67,25 @@ internal class CombatOptionsHandler {
     private fun toggleAutoRetaliate(
         player: Player,
     ) {
-        val disabled =
-            player.vars.getVarp(
-                AUTO_RETALIATE_VARP
-            )
+        val enabled =
+            !player.combatState.autoRetaliate
 
-        val updated =
-            if (disabled == 0) {
-                1
-            } else {
-                0
-            }
+        player.combatState.autoRetaliate =
+            enabled
 
         player.vars.setVarp(
             id = AUTO_RETALIATE_VARP,
-            value = updated,
+            value =
+                if (enabled) {
+                    0
+                } else {
+                    1
+                },
         )
 
         println(
             "[Combat] '${player.username}' set auto retaliate " +
-                "to ${if (updated == 0) "on" else "off"}."
+                "to ${if (enabled) "on" else "off"}."
         )
     }
 
