@@ -3,6 +3,7 @@ package org.example.app.features.combat.weapon
 import org.example.app.core.equipment.EquipmentDefinition
 import org.example.app.core.equipment.EquipmentSkillRequirement
 import org.example.app.core.equipment.EquipmentSlot
+import org.example.app.core.equipment.WeaponDefinition
 import org.example.app.core.items.ItemDefinition
 import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.items.StaticItemDefinitionSource
@@ -29,6 +30,10 @@ internal object CombatItemDefinitions {
                                                 ),
                                             ),
                                     ),
+                                weapon =
+                                    WeaponDefinition(
+                                        categoryId = 1,
+                                    ),
                             ),
                             ItemDefinition(
                                 id = 4151,
@@ -42,6 +47,10 @@ internal object CombatItemDefinitions {
                                                     level = 70,
                                                 ),
                                             ),
+                                    ),
+                                weapon =
+                                    WeaponDefinition(
+                                        categoryId = 20,
                                     ),
                             ),
                         ),

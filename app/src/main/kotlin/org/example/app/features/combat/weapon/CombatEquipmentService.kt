@@ -3,6 +3,7 @@ package org.example.app.features.combat.weapon
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
 import org.example.app.core.equipment.EquipmentSlot
+import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.features.combat.model.CombatWeaponCategory
 import org.example.app.features.combat.state.combatEquipmentSyncState
@@ -10,7 +11,7 @@ import org.example.app.features.combat.state.combatState
 import org.example.app.features.combat.ui.CombatInterfaceService
 
 internal class CombatEquipmentService(
-    private val weaponRepository: CombatWeaponRepository,
+    private val itemDefinitions: ItemDefinitionRepository,
     private val interfaceService: CombatInterfaceService,
 ) {
 
@@ -104,14 +105,20 @@ internal class CombatEquipmentService(
         player: Player,
         itemId: Int?,
     ) {
-        val definition =
+        val weaponDefinition =
             itemId
                 ?.let {
-                    weaponRepository.find(it)
+                    itemDefinitions[it]
+                        ?.weapon
                 }
 
         val category =
-            definition?.category
+            weaponDefinition
+                ?.let {
+                    CombatWeaponCategory(
+                        it.categoryId,
+                    )
+                }
                 ?: CombatWeaponCategory.UNARMED
 
         if (
@@ -135,7 +142,7 @@ internal class CombatEquipmentService(
             return
         }
 
-        if (definition == null) {
+        if (weaponDefinition == null) {
             println(
                 "[Combat] '${player.username}' equipped " +
                     "unsupported weapon item=$itemId; " +
@@ -148,7 +155,7 @@ internal class CombatEquipmentService(
         println(
             "[Combat] '${player.username}' equipped " +
                 "weapon item=$itemId, " +
-                "category=${definition.category.id}."
+                "category=${weaponDefinition.categoryId}."
         )
     }
 

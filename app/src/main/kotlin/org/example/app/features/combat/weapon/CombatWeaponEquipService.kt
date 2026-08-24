@@ -5,8 +5,6 @@ import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 
 internal class CombatWeaponEquipService(
-    private val weaponRepository: CombatWeaponRepository =
-        CombatWeaponRepository(),
     private val itemDefinitions: ItemDefinitionRepository =
         CombatItemDefinitions.repository,
 ) {
@@ -30,10 +28,12 @@ internal class CombatWeaponEquipService(
             return false
         }
 
+        val itemDefinition =
+            itemDefinitions[item.id]
+
         if (
-            weaponRepository.find(
-                item.id,
-            ) == null
+            itemDefinition == null ||
+            itemDefinition.weapon == null
         ) {
             println(
                 "[Combat] '${player.username}' cannot wield " +
@@ -42,10 +42,6 @@ internal class CombatWeaponEquipService(
 
             return false
         }
-
-        val itemDefinition =
-            itemDefinitions[item.id]
-                ?: return false
 
         val equipmentDefinition =
             itemDefinition.equipment
@@ -100,17 +96,18 @@ internal class CombatWeaponEquipService(
         player: Player,
         itemId: Int,
     ): Boolean {
+        val itemDefinition =
+            itemDefinitions[itemId]
+
         if (
-            weaponRepository.find(
-                itemId,
-            ) == null
+            itemDefinition == null ||
+            itemDefinition.weapon == null
         ) {
             return false
         }
 
         val equipmentDefinition =
-            itemDefinitions[itemId]
-                ?.equipment
+            itemDefinition.equipment
                 ?: return false
 
         val item =
