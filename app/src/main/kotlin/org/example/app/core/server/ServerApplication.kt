@@ -4,6 +4,7 @@ import org.example.app.core.cache.CacheBootstrap
 import org.example.app.core.cache.CacheTarget
 import org.example.app.core.cache.HuffmanLoader
 import org.example.app.core.cache.OpenRs2ArchiveClient
+import org.example.app.core.cache.OpenRs2XteaLoader
 import org.example.app.core.cache.PreparedCache
 import org.example.app.core.cache.RsProtJs5Provider
 import org.example.app.core.config.ServerConfig
@@ -23,6 +24,7 @@ import org.example.app.core.player.PlayerManager
 import org.example.app.core.protocol.RsProtInfoSynchronizer
 import org.example.app.core.security.RsaKeyManager
 import org.example.app.core.vars.VarbitDefinitionRepository
+import org.example.app.core.world.WorldCollision
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -52,6 +54,17 @@ class ServerApplication(
     fun run() {
         val cache =
             prepareCache()
+
+        val xteas =
+            OpenRs2XteaLoader(
+                cacheId = cache.metadata.id,
+                dataDirectory =
+                    config.dataDirectory
+                        .resolve("xtea"),
+            ).load()
+
+        val collision =
+            WorldCollision()
 
         val rsa =
             prepareRsa()
@@ -152,6 +165,10 @@ class ServerApplication(
                         persistence,
                     itemDefinitions =
                         itemDefinitions,
+                    collision =
+                        collision,
+                    xteas =
+                        xteas,
                     cacheDirectory =
                         cache.directory,
                 )

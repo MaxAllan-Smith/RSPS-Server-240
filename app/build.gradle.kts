@@ -31,6 +31,10 @@ dependencies {
         "org.xerial:sqlite-jdbc:3.53.2.1"
     )
 
+    implementation(
+        "org.rsmod:rsmod-routefinder:6.0.0"
+    )
+
     runtimeOnly(
         "ch.qos.logback:logback-classic:1.5.18"
     )
