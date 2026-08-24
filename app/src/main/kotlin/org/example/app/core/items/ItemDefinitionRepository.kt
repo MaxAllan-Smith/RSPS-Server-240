@@ -1,8 +1,15 @@
 package org.example.app.core.items
 
 class ItemDefinitionRepository(
-    private val definitions: Map<Int, ItemDefinition>,
+    source: ItemDefinitionSource,
 ) {
+
+    private val definitions: Map<Int, ItemDefinition> =
+        source
+            .load()
+            .associateBy(
+                ItemDefinition::id,
+            )
 
     operator fun get(
         id: Int,
