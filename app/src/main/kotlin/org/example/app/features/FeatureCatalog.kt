@@ -20,6 +20,7 @@ import org.example.app.features.movement.MovementConfig
 import org.example.app.features.movement.MovementFeature
 import org.example.app.features.movement.MovementService
 import org.example.app.features.movement.RoutePlanner
+import org.example.app.features.npcs.NpcFeature
 import org.example.app.features.skills.SkillsFeature
 import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
@@ -111,6 +112,8 @@ object FeatureCatalog {
                 worldLocs =
                     worldLocs,
             ),
+
+            NpcFeature(),
 
             MovementFeature(
                 movement =
