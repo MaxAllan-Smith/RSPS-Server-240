@@ -16,8 +16,7 @@ import org.example.app.core.player.Player
  * - development inventory commands;
  * - inventory slot rearrangement.
  *
- * Gameplay-specific item actions belong to their respective features rather
- * than being implemented here.
+ * Gameplay-specific item actions belong to their respective gameplay features.
  */
 internal class InventoryFeature :
     Feature {
@@ -42,10 +41,6 @@ internal class InventoryFeature :
         )
 
         registrar.packets {
-
-            /*
-             * Revision-240 inventory drag packet.
-             */
             addListener<IfButtonD> { packet ->
                 handleDrag(
                     player = this,
@@ -68,19 +63,22 @@ internal class InventoryFeature :
     /**
      * Handles click-hold-drag inventory rearrangement.
      *
-     * Both source and destination are validated against the player's
-     * authoritative inventory before anything is mutated.
+     * Inventory dragging is purely positional. The client tells us which
+     * inventory slot was dragged and which inventory slot it was dropped on.
+     *
+     * The server remains authoritative over the actual objects occupying those
+     * slots. We therefore never use the client-supplied object ids to decide
+     * what gets moved.
      */
     private fun handleDrag(
         player: Player,
         packet: IfButtonD,
     ) {
         /*
-         * We currently support ordinary inventory -> ordinary inventory
-         * dragging only.
+         * Only allow inventory -> inventory rearrangement.
          *
-         * Future container systems such as bank/equipment can implement their
-         * own explicit transfer semantics.
+         * Transfers involving equipment, banks, shops, etc. require their own
+         * container-transfer semantics and must not fall through here.
          */
         if (
             packet.selectedInterfaceId !=
@@ -124,6 +122,11 @@ internal class InventoryFeature :
             return
         }
 
+        /*
+         * The source slot must actually contain something server-side.
+         *
+         * This is the only item-presence condition required for a reorder.
+         */
         val sourceItem =
             player.inventory[
                 sourceSlot
@@ -137,61 +140,48 @@ internal class InventoryFeature :
                     return
                 }
 
-        /*
-         * Never trust the source object id supplied by the client.
-         */
-        if (
-            sourceItem.id !=
-            packet.selectedObj
-        ) {
-            println(
-                "[Inventory] '${player.username}' rejected drag: " +
-                    "source slot=$sourceSlot, " +
-                    "clientItem=${packet.selectedObj}, " +
-                    "serverItem=${sourceItem.id}."
-            )
-
-            return
-        }
-
         val targetItem =
             player.inventory[
                 targetSlot
             ]
 
         /*
-         * If the destination was occupied when the client performed the drag,
-         * validate that object as well.
+         * Do not reject the operation based on selectedObj/targetObj.
          *
-         * For an empty target IfButtonD exposes targetObj = -1.
+         * In the revision-240 client currently being tested, IfButtonD is
+         * reporting an unexpected selectedObj value (observed as 6512 while
+         * dragging item 1511).
+         *
+         * For a reorder this does not create a trust problem: both objects
+         * being manipulated come exclusively from authoritative server slots.
          */
         if (
-            targetItem == null
-        ) {
-            if (
-                packet.targetObj !=
-                EMPTY_ITEM_ID
-            ) {
-                println(
-                    "[Inventory] '${player.username}' rejected drag: " +
-                        "target slot=$targetSlot is empty server-side, " +
-                        "but clientTarget=${packet.targetObj}."
-                )
-
-                return
-            }
-        } else if (
-            targetItem.id !=
-            packet.targetObj
+            packet.selectedObj !=
+            sourceItem.id
         ) {
             println(
-                "[Inventory] '${player.username}' rejected drag: " +
-                    "target slot=$targetSlot, " +
-                    "clientItem=${packet.targetObj}, " +
-                    "serverItem=${targetItem.id}."
+                "[Inventory] '${player.username}' drag packet source object " +
+                    "differs from server state: " +
+                    "slot=$sourceSlot, " +
+                    "packet=${packet.selectedObj}, " +
+                    "server=${sourceItem.id}; " +
+                    "using authoritative server item."
             )
+        }
 
-            return
+        if (
+            targetItem != null &&
+            packet.targetObj !=
+            targetItem.id
+        ) {
+            println(
+                "[Inventory] '${player.username}' drag packet target object " +
+                    "differs from server state: " +
+                    "slot=$targetSlot, " +
+                    "packet=${packet.targetObj}, " +
+                    "server=${targetItem.id}; " +
+                    "using authoritative server item."
+            )
         }
 
         if (
@@ -207,18 +197,31 @@ internal class InventoryFeature :
         }
 
         println(
-            "[Inventory] '${player.username}' moved " +
-                "item=${sourceItem.id} " +
-                "slot=$sourceSlot -> $targetSlot" +
-                (
-                    if (
-                        targetItem == null
-                    ) {
-                        "."
-                    } else {
-                        "; swapped with item=${targetItem.id}."
-                    }
+            buildString {
+                append(
+                    "[Inventory] '${player.username}' moved "
+                )
+
+                append(
+                    "item=${sourceItem.id} "
+                )
+
+                append(
+                    "slot=$sourceSlot -> $targetSlot"
+                )
+
+                if (
+                    targetItem != null
+                ) {
+                    append(
+                        "; swapped with item=${targetItem.id}"
                     )
+                }
+
+                append(
+                    "."
+                )
+            }
         )
     }
 
@@ -232,8 +235,5 @@ internal class InventoryFeature :
 
         const val INVENTORY_COMPONENT_ID: Int =
             0
-
-        const val EMPTY_ITEM_ID: Int =
-            -1
     }
 }
