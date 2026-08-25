@@ -6,11 +6,13 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureDependencies
 import org.example.app.features.chat.ChatFeature
 import org.example.app.features.combat.CombatFeature
+import org.example.app.features.firemaking.FiremakingFeature
 import org.example.app.features.grounditems.GroundItemConfig
 import org.example.app.features.grounditems.GroundItemFeature
 import org.example.app.features.grounditems.GroundItemService
 import org.example.app.features.interfaces.InterfaceFeature
 import org.example.app.features.inventory.InventoryFeature
+import org.example.app.features.itemuse.ItemOnItemDispatcher
 import org.example.app.features.itemuse.ItemUseFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.movement.MovementFeature
@@ -23,9 +25,6 @@ import org.example.app.features.world.WorldLocService
 
 /**
  * Application composition root for gameplay features.
- *
- * Shared services are constructed once here and injected into the vertical
- * slices that require them.
  */
 object FeatureCatalog {
 
@@ -34,9 +33,6 @@ object FeatureCatalog {
             FeatureDependencies,
     ): List<Feature> {
 
-        /*
-         * Shared collision-aware movement.
-         */
         val movement =
             MovementService(
                 planner =
@@ -46,17 +42,9 @@ object FeatureCatalog {
                     ),
             )
 
-        /*
-         * Shared transient dynamic-location state.
-         */
         val worldLocs =
             WorldLocService()
 
-        /*
-         * Shared gameplay experience pipeline.
-         *
-         * 100 = canonical / 1x XP.
-         */
         val experience =
             ExperienceService(
                 config =
@@ -66,11 +54,6 @@ object FeatureCatalog {
                     ),
             )
 
-        /*
-         * Shared transient ground-item repository.
-         *
-         * 100 cycles x 600ms = approximately 60 seconds.
-         */
         val groundItems =
             GroundItemService(
                 config =
@@ -79,6 +62,15 @@ object FeatureCatalog {
                             100,
                     ),
             )
+
+        /*
+         * Shared generic item-on-item interaction registry.
+         *
+         * ItemUseFeature decodes/validates protocol interactions.
+         * Gameplay features register their own recipes against this dispatcher.
+         */
+        val itemOnItem =
+            ItemOnItemDispatcher()
 
         return listOf(
             LoginFeature(),
@@ -97,7 +89,21 @@ object FeatureCatalog {
 
             InventoryFeature(),
 
-            ItemUseFeature(),
+            ItemUseFeature(
+                itemOnItem =
+                    itemOnItem,
+            ),
+
+            FiremakingFeature(
+                itemOnItem =
+                    itemOnItem,
+
+                worldLocs =
+                    worldLocs,
+
+                experience =
+                    experience,
+            ),
 
             GroundItemFeature(
                 groundItems =

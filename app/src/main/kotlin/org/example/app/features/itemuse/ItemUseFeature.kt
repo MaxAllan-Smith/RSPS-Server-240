@@ -10,27 +10,18 @@ import org.example.app.core.player.sendGameMessage
 /**
  * Generic selected-item interaction feature.
  *
- * This initial slice handles inventory item -> inventory item targeting.
+ * This slice handles inventory item -> inventory item targeting.
  *
- * Future extensions can add:
- *
- * - item -> loc;
- * - item -> NPC;
- * - item -> player;
- * - item -> ground item.
+ * The actual gameplay interactions are registered by vertical gameplay
+ * features such as Firemaking rather than being hard-coded here.
  */
-internal class ItemUseFeature :
-    Feature {
+internal class ItemUseFeature(
+    private val itemOnItem:
+        ItemOnItemDispatcher,
+) : Feature {
 
     override val id: String =
         "item-use"
-
-    private val itemOnItem =
-        ItemOnItemDispatcher()
-
-    init {
-        registerInteractions()
-    }
 
     override fun install(
         registrar: FeatureRegistrar,
@@ -45,38 +36,6 @@ internal class ItemUseFeature :
         }
     }
 
-    /**
-     * Registers generic item combinations.
-     *
-     * Logs + Tinderbox is deliberately only a proof-of-dispatch interaction
-     * here. Actual Firemaking behavior comes in the next vertical slice.
-     */
-    private fun registerInteractions() {
-        itemOnItem.register(
-            firstItemId =
-                LOGS_ITEM_ID,
-
-            secondItemId =
-                TINDERBOX_ITEM_ID,
-        ) { interaction ->
-            println(
-                "[ItemUse] '${interaction.player.username}' matched " +
-                    "Logs + Tinderbox: " +
-                    "selected=${interaction.selectedItemId}@" +
-                    "${interaction.selectedSlot}, " +
-                    "target=${interaction.targetItemId}@" +
-                    "${interaction.targetSlot}."
-            )
-
-            interaction.player.sendGameMessage(
-                "You strike the tinderbox against the logs."
-            )
-        }
-    }
-
-    /**
-     * Handles inventory item -> inventory item targeting.
-     */
     private fun handleItemOnItem(
         player: Player,
         packet: IfButtonT,
@@ -120,10 +79,6 @@ internal class ItemUseFeature :
             return
         }
 
-        /*
-         * Using an item on itself in the same slot is not a meaningful
-         * item-on-item interaction.
-         */
         if (
             selectedSlot ==
             targetSlot
@@ -158,10 +113,8 @@ internal class ItemUseFeature :
                 }
 
         /*
-         * Unlike inventory dragging, IfButtonT's object ids are part of the
-         * actual item-use interaction identity.
-         *
-         * Validate them against authoritative server inventory state.
+         * Unlike inventory dragging, these ids describe the actual selected
+         * item interaction and are therefore validated.
          */
         if (
             packet.selectedObj !=
@@ -229,22 +182,10 @@ internal class ItemUseFeature :
 
     private companion object {
 
-        /**
-         * inventory:items
-         */
         const val INVENTORY_INTERFACE_ID: Int =
             149
 
         const val INVENTORY_COMPONENT_ID: Int =
             0
-
-        /**
-         * Standard OSRS item ids.
-         */
-        const val TINDERBOX_ITEM_ID: Int =
-            590
-
-        const val LOGS_ITEM_ID: Int =
-            1511
     }
 }

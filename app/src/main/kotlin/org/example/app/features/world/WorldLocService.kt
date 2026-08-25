@@ -6,6 +6,7 @@ import net.rsprot.protocol.game.outgoing.util.OpFlags
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialFollows
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV2
+import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
 import net.rsprot.protocol.game.outgoing.zone.payload.SoundArea
 import net.rsprot.protocol.message.ZoneProt
 import org.example.app.core.engine.GameContext
@@ -15,16 +16,19 @@ import org.example.app.core.player.WorldPosition
 /**
  * Server-authoritative runtime state for temporary world-location changes.
  *
+ * Supports both:
+ *
+ * - replacing an existing static location temporarily;
+ * - spawning a completely new temporary location.
+ *
  * Examples:
  *
  * - tree -> stump -> tree;
  * - rock -> depleted rock -> rock;
  * - temporary doors;
+ * - player-made fires;
  * - quest scenery;
  * - temporary event objects.
- *
- * Static definitions belong in cache/database-backed definition repositories.
- * This service owns only transient runtime world overrides.
  */
 class WorldLocService {
 
@@ -34,9 +38,6 @@ class WorldLocService {
     private var revision: Long =
         0L
 
-    /**
-     * Returns true when this location/layer currently has a dynamic override.
-     */
     fun isOverridden(
         position: WorldPosition,
         shape: Int,
@@ -49,12 +50,7 @@ class WorldLocService {
         )
 
     /**
-     * Temporarily replaces a static world location.
-     *
-     * The replacement is broadcast to every player whose current scene
-     * contains the location.
-     *
-     * @return false when this exact location/layer is already overridden.
+     * Temporarily replaces a static cache/world location.
      */
     fun replace(
         context: GameContext,
@@ -97,18 +93,32 @@ class WorldLocService {
                 shape = shape,
             )
 
-        if (key in overrides) {
+        if (
+            key in
+            overrides
+        ) {
             return false
         }
 
         val override =
             DynamicWorldLoc(
-                originalId = originalId,
-                replacementId = replacementId,
-                position = position,
-                shape = shape,
-                rotation = rotation,
-                ticksRemaining = respawnTicks,
+                originalId =
+                    originalId,
+
+                replacementId =
+                    replacementId,
+
+                position =
+                    position,
+
+                shape =
+                    shape,
+
+                rotation =
+                    rotation,
+
+                ticksRemaining =
+                    respawnTicks,
             )
 
         overrides[key] =
@@ -116,30 +126,36 @@ class WorldLocService {
 
         revision++
 
-        /*
-         * Location replacement may be sent with partial-follows because it is
-         * a normal zone payload.
-         */
         broadcastLoc(
-            context = context,
-            loc = override,
-            id = replacementId,
-            opFlags = OpFlags.NONE_SHOWN,
+            context =
+                context,
+
+            loc =
+                override,
+
+            id =
+                replacementId,
+
+            opFlags =
+                OpFlags.NONE_SHOWN,
         )
 
-        /*
-         * SoundArea is different.
-         *
-         * As of revision 221 on Java clients RSProt requires SoundArea to be
-         * encoded inside UpdateZonePartialEnclosed. Sending SoundArea directly
-         * causes Session.validateMessage to reject it.
-         */
-        if (soundId != null) {
+        if (
+            soundId !=
+            null
+        ) {
             broadcastSound(
-                context = context,
-                position = position,
-                soundId = soundId,
-                radius = soundRadius,
+                context =
+                    context,
+
+                position =
+                    position,
+
+                soundId =
+                    soundId,
+
+                radius =
+                    soundRadius,
             )
         }
 
@@ -156,30 +172,135 @@ class WorldLocService {
     }
 
     /**
-     * Advances temporary world-location timers once per game cycle.
+     * Spawns a completely new temporary location.
+     *
+     * Unlike [replace], there is no static original location to restore when
+     * the timer expires. The client therefore receives LocDel on expiry.
+     */
+    fun spawnTemporary(
+        context: GameContext,
+        id: Int,
+        position: WorldPosition,
+        shape: Int,
+        rotation: Int,
+        lifetimeTicks: Int,
+    ): Boolean {
+        require(id >= 0) {
+            "Loc id must be non-negative."
+        }
+
+        require(shape in 0..22) {
+            "Loc shape must be in range 0..22."
+        }
+
+        require(rotation in 0..3) {
+            "Loc rotation must be in range 0..3."
+        }
+
+        require(lifetimeTicks > 0) {
+            "Temporary loc lifetime must be positive."
+        }
+
+        val key =
+            WorldLocKey(
+                position =
+                    position,
+
+                shape =
+                    shape,
+            )
+
+        if (
+            key in
+            overrides
+        ) {
+            return false
+        }
+
+        val loc =
+            DynamicWorldLoc(
+                originalId =
+                    null,
+
+                replacementId =
+                    id,
+
+                position =
+                    position,
+
+                shape =
+                    shape,
+
+                rotation =
+                    rotation,
+
+                ticksRemaining =
+                    lifetimeTicks,
+            )
+
+        overrides[key] =
+            loc
+
+        revision++
+
+        broadcastLoc(
+            context =
+                context,
+
+            loc =
+                loc,
+
+            id =
+                id,
+
+            opFlags =
+                OpFlags.NONE_SHOWN,
+        )
+
+        println(
+            "[World] Spawned temporary loc $id " +
+                "at ${position.x}," +
+                "${position.z}," +
+                "${position.level} " +
+                "for $lifetimeTicks ticks."
+        )
+
+        return true
+    }
+
+    /**
+     * Advances all dynamic world-location timers.
      */
     fun cycle(
         context: GameContext,
     ) {
-        if (overrides.isEmpty()) {
+        if (
+            overrides.isEmpty()
+        ) {
             return
         }
 
         val expired =
-            ArrayList<Pair<WorldLocKey, DynamicWorldLoc>>()
+            ArrayList<
+                Pair<
+                    WorldLocKey,
+                    DynamicWorldLoc
+                    >
+                >()
 
         for (
-        (key, loc) in
-        overrides
+            (key, loc) in
+            overrides
         ) {
-
             loc.ticksRemaining--
 
             if (
-                loc.ticksRemaining <= 0
+                loc.ticksRemaining <=
+                0
             ) {
                 expired +=
-                    key to loc
+                    key to
+                    loc
             }
         }
 
@@ -193,31 +314,64 @@ class WorldLocService {
 
             revision++
 
-            /*
-             * Restore the original static location.
-             */
-            broadcastLoc(
-                context = context,
-                loc = loc,
-                id = loc.originalId,
-                opFlags = OpFlags.ALL_SHOWN,
-            )
+            val originalId =
+                loc.originalId
 
-            println(
-                "[World] Respawned loc " +
-                    "${loc.originalId} " +
-                    "at ${loc.position.x}," +
-                    "${loc.position.z}," +
-                    "${loc.position.level}."
-            )
+            if (
+                originalId !=
+                null
+            ) {
+                /*
+                 * Replacement override:
+                 * restore the static/original loc.
+                 */
+                broadcastLoc(
+                    context =
+                        context,
+
+                    loc =
+                        loc,
+
+                    id =
+                        originalId,
+
+                    opFlags =
+                        OpFlags.ALL_SHOWN,
+                )
+
+                println(
+                    "[World] Respawned loc " +
+                        "$originalId " +
+                        "at ${loc.position.x}," +
+                        "${loc.position.z}," +
+                        "${loc.position.level}."
+                )
+            } else {
+                /*
+                 * Spawn-only override:
+                 * delete the temporary loc.
+                 */
+                broadcastDelete(
+                    context =
+                        context,
+
+                    loc =
+                        loc,
+                )
+
+                println(
+                    "[World] Removed temporary loc " +
+                        "${loc.replacementId} " +
+                        "at ${loc.position.x}," +
+                        "${loc.position.z}," +
+                        "${loc.position.level}."
+                )
+            }
         }
     }
 
     /**
-     * Applies active dynamic overrides after login or a scene rebuild.
-     *
-     * Without this, a player entering an area after another player depleted a
-     * tree would temporarily see the original cache tree rather than its stump.
+     * Applies currently-active dynamic locations after login or scene rebuild.
      */
     fun synchronize(
         player: Player,
@@ -253,18 +407,28 @@ class WorldLocService {
         ) {
             if (
                 !isVisible(
-                    player = player,
-                    position = loc.position,
+                    player =
+                        player,
+
+                    position =
+                        loc.position,
                 )
             ) {
                 continue
             }
 
             queueLoc(
-                player = player,
-                loc = loc,
-                id = loc.replacementId,
-                opFlags = OpFlags.NONE_SHOWN,
+                player =
+                    player,
+
+                loc =
+                    loc,
+
+                id =
+                    loc.replacementId,
+
+                opFlags =
+                    OpFlags.NONE_SHOWN,
             )
         }
 
@@ -278,10 +442,6 @@ class WorldLocService {
             baseZoneZ
     }
 
-    /**
-     * Sends a location replacement to every player that currently has the
-     * location inside their loaded scene.
-     */
     private fun broadcastLoc(
         context: GameContext,
         loc: DynamicWorldLoc,
@@ -295,26 +455,66 @@ class WorldLocService {
             if (
                 player.isDisconnected ||
                 !isVisible(
-                    player = player,
-                    position = loc.position,
+                    player =
+                        player,
+
+                    position =
+                        loc.position,
                 )
             ) {
                 continue
             }
 
             queueLoc(
-                player = player,
-                loc = loc,
-                id = id,
-                opFlags = opFlags,
+                player =
+                    player,
+
+                loc =
+                    loc,
+
+                id =
+                    id,
+
+                opFlags =
+                    opFlags,
             )
         }
     }
 
     /**
-     * Broadcasts an area sound using revision-240's required
-     * UpdateZonePartialEnclosed container.
+     * Deletes a spawn-only temporary location from every visible client.
      */
+    private fun broadcastDelete(
+        context: GameContext,
+        loc: DynamicWorldLoc,
+    ) {
+        for (
+            player in
+            context.players.snapshot()
+        ) {
+            if (
+                player.isDisconnected ||
+                !isVisible(
+                    player =
+                        player,
+
+                    position =
+                        loc.position,
+                )
+            ) {
+                continue
+            }
+
+            queueDelete(
+                player =
+                    player,
+
+                loc =
+                    loc,
+            )
+        }
+    }
+
     private fun broadcastSound(
         context: GameContext,
         position: WorldPosition,
@@ -323,16 +523,20 @@ class WorldLocService {
     ) {
         val sound =
             SoundArea(
-                id = soundId,
-                delay = 0,
+                id =
+                    soundId,
 
-                /*
-                 * RSProt documents loops=0 as "do not play".
-                 */
-                loops = 1,
+                delay =
+                    0,
 
-                radius = radius,
-                size = 1,
+                loops =
+                    1,
+
+                radius =
+                    radius,
+
+                size =
+                    1,
 
                 xInZone =
                     position.x and
@@ -350,16 +554,23 @@ class WorldLocService {
             if (
                 player.isDisconnected ||
                 !isVisible(
-                    player = player,
-                    position = position,
+                    player =
+                        player,
+
+                    position =
+                        position,
                 )
             ) {
                 continue
             }
 
             queueEnclosedZonePayload(
-                player = player,
-                position = position,
+                player =
+                    player,
+
+                position =
+                    position,
+
                 payloads =
                     listOf(
                         sound
@@ -368,12 +579,6 @@ class WorldLocService {
         }
     }
 
-    /**
-     * Sends a location add/change through the normal partial-follows mechanism.
-     *
-     * LocAddChangeV2 is permitted as a directly-following zone payload in
-     * revision 240.
-     */
     private fun queueLoc(
         player: Player,
         loc: DynamicWorldLoc,
@@ -381,11 +586,16 @@ class WorldLocService {
         opFlags: Byte,
     ) {
         queueFollowingZonePayload(
-            player = player,
-            position = loc.position,
+            player =
+                player,
+
+            position =
+                loc.position,
+
             payload =
                 LocAddChangeV2(
-                    id = id,
+                    id =
+                        id,
 
                     xInZone =
                         loc.position.x and
@@ -395,19 +605,48 @@ class WorldLocService {
                         loc.position.z and
                             ZONE_MASK,
 
-                    shape = loc.shape,
-                    rotation = loc.rotation,
-                    opFlags = opFlags,
+                    shape =
+                        loc.shape,
+
+                    rotation =
+                        loc.rotation,
+
+                    opFlags =
+                        opFlags,
                 ),
         )
     }
 
-    /**
-     * Queues a zone payload using UpdateZonePartialFollows.
-     *
-     * This is efficient for a single zone packet and is valid for ordinary
-     * payloads such as LocAddChangeV2.
-     */
+    private fun queueDelete(
+        player: Player,
+        loc: DynamicWorldLoc,
+    ) {
+        queueFollowingZonePayload(
+            player =
+                player,
+
+            position =
+                loc.position,
+
+            payload =
+                LocDel(
+                    xInZone =
+                        loc.position.x and
+                            ZONE_MASK,
+
+                    zInZone =
+                        loc.position.z and
+                            ZONE_MASK,
+
+                    shape =
+                        loc.shape,
+
+                    rotation =
+                        loc.rotation,
+                ),
+        )
+    }
+
     private fun queueFollowingZonePayload(
         player: Player,
         position: WorldPosition,
@@ -415,16 +654,24 @@ class WorldLocService {
     ) {
         val zone =
             localZone(
-                player = player,
-                position = position,
+                player =
+                    player,
+
+                position =
+                    position,
             )
                 ?: return
 
         player.session.queue(
             UpdateZonePartialFollows(
-                zoneX = zone.x,
-                zoneZ = zone.z,
-                level = position.level,
+                zoneX =
+                    zone.x,
+
+                zoneZ =
+                    zone.z,
+
+                level =
+                    position.level,
             )
         )
 
@@ -433,36 +680,27 @@ class WorldLocService {
         )
     }
 
-    /**
-     * Queues one or more zone payloads using UpdateZonePartialEnclosed.
-     *
-     * SoundArea MUST use this mechanism on revision-240 Java clients.
-     *
-     * ZonePartialEnclosedCacheBuffer creates the already-encoded payload for
-     * the requested client type. UpdateZonePartialEnclosed retains that buffer,
-     * so this method releases its original reference immediately after the
-     * wrapper is constructed.
-     */
     private fun queueEnclosedZonePayload(
         player: Player,
         position: WorldPosition,
         payloads: Collection<ZoneProt>,
     ) {
-        if (payloads.isEmpty()) {
+        if (
+            payloads.isEmpty()
+        ) {
             return
         }
 
         val zone =
             localZone(
-                player = player,
-                position = position,
+                player =
+                    player,
+
+                position =
+                    position,
             )
                 ?: return
 
-        /*
-         * This server currently supports the Desktop client only, matching the
-         * NetworkService startup configuration.
-         */
         val cache =
             ZonePartialEnclosedCacheBuffer(
                 supportedClients =
@@ -475,23 +713,25 @@ class WorldLocService {
             cache.computeZoneForClient(
                 client =
                     OldSchoolClientType.DESKTOP,
+
                 pendingTickProtList =
                     payloads,
             )
 
-        /*
-         * UpdateZonePartialEnclosed retains the supplied ByteBuf.
-         *
-         * Drop the original computeZoneForClient reference after creating the
-         * wrapper so the queued message becomes the sole owner.
-         */
         val message =
             try {
                 UpdateZonePartialEnclosed(
-                    zoneX = zone.x,
-                    zoneZ = zone.z,
-                    level = position.level,
-                    payload = buffer,
+                    zoneX =
+                        zone.x,
+
+                    zoneZ =
+                        zone.z,
+
+                    level =
+                        position.level,
+
+                    payload =
+                        buffer,
                 )
             } finally {
                 buffer.release()
@@ -502,10 +742,6 @@ class WorldLocService {
         )
     }
 
-    /**
-     * Converts an absolute 8x8 world zone into its scene-local south-west
-     * coordinate expected by RSProt's zone update headers.
-     */
     private fun localZone(
         player: Player,
         position: WorldPosition,
@@ -541,16 +777,13 @@ class WorldLocService {
             x =
                 zoneSouthWestX -
                     buildBaseX,
+
             z =
                 zoneSouthWestZ -
                     buildBaseZ,
         )
     }
 
-    /**
-     * Tests whether an absolute world coordinate belongs to the player's
-     * currently loaded 104x104 scene.
-     */
     private fun isVisible(
         player: Player,
         position: WorldPosition,
@@ -608,7 +841,7 @@ class WorldLocService {
     )
 
     private data class DynamicWorldLoc(
-        val originalId: Int,
+        val originalId: Int?,
         val replacementId: Int,
         val position: WorldPosition,
         val shape: Int,
@@ -617,16 +850,13 @@ class WorldLocService {
     )
 
     private companion object {
+
         const val ZONE_SHIFT: Int =
             3
 
         const val ZONE_MASK: Int =
             7
 
-        /**
-         * Removes the bottom three bits to obtain the south-western coordinate
-         * of an 8x8 zone.
-         */
         const val ZONE_TILE_MASK: Int =
             -8
 
