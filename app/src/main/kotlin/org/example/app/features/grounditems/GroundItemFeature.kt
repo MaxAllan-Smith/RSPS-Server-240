@@ -9,19 +9,18 @@ import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 import org.example.app.core.player.sendGameMessage
 import org.example.app.features.movement.MovementService
-import kotlin.math.abs
-import kotlin.math.max
 
 /**
  * Generic inventory-drop and ground-item interaction feature.
  *
- * Responsibilities:
+ * Ground-item pickup differs from scenery interaction:
  *
- * - inventory Drop;
- * - collision-aware movement toward ground items;
- * - ground-item Take;
- * - ground-item garbage collection;
- * - scene synchronization.
+ * - locs are normally interacted with from an adjacent approach tile;
+ * - ground items must be picked up while standing on their exact tile.
+ *
+ * A Take interaction therefore routes directly onto the object's coordinate,
+ * revalidates the object once that coordinate is reached, and only then moves
+ * it into the player's inventory.
  */
 internal class GroundItemFeature(
     private val groundItems:
@@ -40,10 +39,10 @@ internal class GroundItemFeature(
         registrar.packets {
 
             /*
-             * If3Button already has a specific listener elsewhere for equipment
-             * interactions.
+             * If3Button already has a specific listener elsewhere for
+             * equipment interactions.
              *
-             * Observe inventory Drop globally without replacing that listener.
+             * Observe inventory Drop through the global packet listener.
              */
             addGlobalListener { player, message ->
                 if (
@@ -58,7 +57,7 @@ internal class GroundItemFeature(
             }
 
             /*
-             * Ground-object interactions.
+             * Ground-object operations.
              */
             addListener<OpObjV2> { packet ->
                 handleGroundItem(
@@ -69,7 +68,11 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Ground-item expiry, pending spawns and pending deletions.
+         * Temporary ground-item lifecycle:
+         *
+         * - pending spawns;
+         * - pending removals;
+         * - expiry / garbage collection.
          */
         registrar.onCycleStart(
             priority =
@@ -81,11 +84,7 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Movement has already advanced the player by the time this later
-         * gameplay pass runs.
-         *
-         * Complete pending ground-item interactions once their selected
-         * approach tile has been reached.
+         * Complete pending Take interactions after movement has advanced.
          */
         registrar.onCycleStart(
             priority =
@@ -108,7 +107,7 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Resynchronize existing ground objects after login or scene rebuild.
+         * Replay live ground objects after login or scene rebuild.
          */
         registrar.beforeInfoUpdate(
             priority =
@@ -166,7 +165,8 @@ internal class GroundItemFeature(
                 ?: return
 
         /*
-         * Never trust the item id supplied by the client.
+         * Validate the client's claimed item against authoritative inventory
+         * state before removing anything.
          */
         if (
             serverItem.id !=
@@ -207,9 +207,7 @@ internal class GroundItemFeature(
     }
 
     /**
-     * Handles the standard ground-item Take operation.
-     *
-     * Ground action slot three corresponds to Take.
+     * Handles ground action three: Take.
      */
     private fun handleGroundItem(
         player: Player,
@@ -235,20 +233,18 @@ internal class GroundItemFeature(
             )
 
         /*
-         * A new interaction replaces any previous pending ground-item
-         * interaction.
+         * A newly-clicked ground item replaces the previous pending pickup.
          */
         player.groundItemInteractionState
             .clear()
 
         /*
-         * If already adjacent, perform the authoritative pickup immediately.
+         * If we are already standing directly on the ground item, there is no
+         * need to calculate a movement route.
          */
         if (
-            isInPickupRange(
-                player = player,
-                position = targetPosition,
-            )
+            player.position ==
+            targetPosition
         ) {
             completePickup(
                 player = player,
@@ -264,14 +260,15 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Ask the shared RSMod-backed movement service for a reachable tile
-         * immediately surrounding the ground object.
+         * Ground items differ from scenery.
          *
-         * MovementService.requestNear expects the destination as separate
-         * absolute x/z coordinates.
+         * Do NOT use requestNear here.
+         *
+         * We want the ordinary exact-destination movement request so the
+         * player's final coordinate must equal the ground item's coordinate.
          */
-        val approachPosition =
-            movement.requestNear(
+        val routeAccepted =
+            movement.request(
                 player =
                     player,
 
@@ -280,21 +277,21 @@ internal class GroundItemFeature(
 
                 z =
                     targetPosition.z,
-
-                maximumRadius =
-                    GROUND_ITEM_APPROACH_RADIUS,
             )
-                ?: run {
-                    println(
-                        "[GroundItems] '${player.username}' could not route to " +
-                            "item=${packet.id} " +
-                            "at ${targetPosition.x}," +
-                            "${targetPosition.z}," +
-                            "${targetPosition.level}."
-                    )
 
-                    return
-                }
+        if (
+            !routeAccepted
+        ) {
+            println(
+                "[GroundItems] '${player.username}' could not route onto " +
+                    "item=${packet.id} " +
+                    "at ${targetPosition.x}," +
+                    "${targetPosition.z}," +
+                    "${targetPosition.level}."
+            )
+
+            return
+        }
 
         player.groundItemInteractionState
             .pickup =
@@ -304,26 +301,20 @@ internal class GroundItemFeature(
 
                 position =
                     targetPosition,
-
-                approachPosition =
-                    approachPosition,
             )
 
         println(
-            "[GroundItems] '${player.username}' routing to " +
+            "[GroundItems] '${player.username}' routing onto " +
                 "item=${packet.id} " +
                 "at ${targetPosition.x}," +
                 "${targetPosition.z}," +
-                "${targetPosition.level}; " +
-                "approach=${approachPosition.x}," +
-                "${approachPosition.z}," +
-                "${approachPosition.level}."
+                "${targetPosition.level}."
         )
     }
 
     /**
-     * Completes a pending Take interaction once the movement destination has
-     * been reached.
+     * Completes a pending Take only after the player physically occupies the
+     * ground item's tile.
      */
     private fun processPendingPickup(
         player: Player,
@@ -334,12 +325,13 @@ internal class GroundItemFeature(
                 ?: return
 
         /*
-         * requestNear returns the exact destination installed into the player's
-         * movement state.
+         * This is intentionally exact equality.
+         *
+         * Adjacent, diagonal, two tiles away, etc. are all insufficient.
          */
         if (
             player.position !=
-            pickup.approachPosition
+            pickup.position
         ) {
             return
         }
@@ -348,7 +340,8 @@ internal class GroundItemFeature(
             .clear()
 
         /*
-         * Clear residual route state before completing the action.
+         * The exact destination has been reached, so clear any residual
+         * movement state before completing the gameplay action.
          */
         movement.clear(
             player = player
@@ -366,11 +359,7 @@ internal class GroundItemFeature(
     }
 
     /**
-     * Final server-authoritative pickup operation.
-     *
-     * GroundItemService.take() performs the final existence check, so an item
-     * which expired or was taken while the player was walking cannot be
-     * duplicated.
+     * Final authoritative pickup operation.
      */
     private fun completePickup(
         player: Player,
@@ -378,19 +367,20 @@ internal class GroundItemFeature(
         position: WorldPosition,
     ) {
         /*
-         * Pickup may only occur on the same tile or an immediately-adjacent
-         * tile.
+         * Hard requirement:
+         *
+         * the player must physically occupy the exact ground-object tile.
          */
         if (
-            !isInPickupRange(
-                player = player,
-                position = position,
-            )
+            player.position !=
+            position
         ) {
             println(
-                "[GroundItems] '${player.username}' reached invalid pickup " +
-                    "distance for item=$itemId " +
-                    "at ${position.x}," +
+                "[GroundItems] '${player.username}' rejected pickup because " +
+                    "player=${player.position.x}," +
+                    "${player.position.z}," +
+                    "${player.position.level} " +
+                    "item=${position.x}," +
                     "${position.z}," +
                     "${position.level}."
             )
@@ -410,9 +400,16 @@ internal class GroundItemFeature(
         }
 
         /*
-         * Final revalidation.
+         * Final existence revalidation.
          *
-         * The item may have disappeared while the player was moving.
+         * The ground item might have:
+         *
+         * - expired while the player was walking;
+         * - been taken by another player;
+         * - otherwise been removed.
+         *
+         * In all those cases take() returns null and nothing enters the
+         * inventory.
          */
         val item =
             groundItems.take(
@@ -452,39 +449,6 @@ internal class GroundItemFeature(
         )
     }
 
-    /**
-     * Same tile or one surrounding tile.
-     */
-    private fun isInPickupRange(
-        player: Player,
-        position: WorldPosition,
-    ): Boolean {
-        if (
-            player.position.level !=
-            position.level
-        ) {
-            return false
-        }
-
-        val deltaX =
-            abs(
-                player.position.x -
-                    position.x
-            )
-
-        val deltaZ =
-            abs(
-                player.position.z -
-                    position.z
-            )
-
-        return max(
-            deltaX,
-            deltaZ,
-        ) <=
-            MAXIMUM_PICKUP_DISTANCE
-    }
-
     private companion object {
 
         /**
@@ -503,32 +467,16 @@ internal class GroundItemFeature(
             7
 
         /**
-         * Ground action slot three = Take.
+         * Third ground action = Take.
          */
         const val TAKE_OPERATION: Int =
             3
 
-        /**
-         * Same tile or directly adjacent.
-         */
-        const val MAXIMUM_PICKUP_DISTANCE: Int =
-            1
-
-        /**
-         * Only search the immediately-surrounding ring for a reachable
-         * interaction tile.
-         */
-        const val GROUND_ITEM_APPROACH_RADIUS: Int =
-            1
-
-        /**
-         * Temporary world-object lifecycle.
-         */
         const val GROUND_ITEM_LIFECYCLE_PRIORITY: Int =
             5
 
-        /**
-         * Gameplay interaction completion after movement.
+        /*
+         * Must run after movement processing.
          */
         const val GROUND_ITEM_INTERACTION_PRIORITY: Int =
             20
@@ -539,16 +487,15 @@ internal class GroundItemFeature(
 }
 
 /**
- * One pending Take interaction.
+ * One pending exact-tile ground-item pickup.
  */
 private data class GroundItemPickup(
     val itemId: Int,
     val position: WorldPosition,
-    val approachPosition: WorldPosition,
 )
 
 /**
- * Transient per-player ground-item interaction state.
+ * Per-player transient ground-item interaction state.
  */
 private class GroundItemInteractionState {
 
