@@ -1,5 +1,6 @@
 package org.example.app.core.skills
 
+/** The full set of OSRS skills, with the RSProt/cache ids each skill needs for stats, the skill guide and level-up interfaces. */
 enum class Skill(
     val id: Int,
     val statsComponentId: Int,
@@ -207,4 +208,4 @@ enum class Skill(
                 it.statsComponentId == componentId
             }
     }
-}
+}

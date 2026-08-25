@@ -4,6 +4,7 @@ import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 
+/** Validates and performs moving a weapon between the inventory and the weapon equipment slot. */
 internal class CombatWeaponEquipService(
     private val itemDefinitions:
         ItemDefinitionRepository,
@@ -146,4 +147,4 @@ internal class CombatWeaponEquipService(
             name
                 .lowercase()
                 .replaceFirstChar(Char::uppercase)
-}
+}

@@ -222,4 +222,4 @@ class PlayerInventory {
         const val CAPACITY: Int =
             28
     }
-}
+}

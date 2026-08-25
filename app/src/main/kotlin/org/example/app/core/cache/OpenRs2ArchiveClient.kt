@@ -15,6 +15,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 
+/** HTTP client for the OpenRS2 archive API, used to resolve and download a specific cache snapshot by revision/date window. */
 data class CacheTarget(
     val major: Int,
     val minor: Int?,
@@ -261,4 +262,4 @@ class OpenRs2ArchiveClient {
         private const val BASE_URL =
             "https://archive.openrs2.org"
     }
-}
+}

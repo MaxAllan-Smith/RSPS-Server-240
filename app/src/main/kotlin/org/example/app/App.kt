@@ -1,4 +1,6 @@
 @file:OptIn(
+
+/** Process entry point: builds the server configuration and hands off to [ServerApplication] with [FeatureCatalog] as the feature factory. */
     kotlin.ExperimentalUnsignedTypes::class,
     ExperimentalStdlibApi::class,
 )
@@ -41,4 +43,4 @@ private fun printBanner(
     )
 
     println()
-}
+}

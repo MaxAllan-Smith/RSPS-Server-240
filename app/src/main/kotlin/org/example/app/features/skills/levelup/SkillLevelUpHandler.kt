@@ -4,6 +4,7 @@ import net.rsprot.protocol.game.incoming.resumed.ResumePauseButton
 import net.rsprot.protocol.game.outgoing.interfaces.IfCloseSub
 import org.example.app.core.player.Player
 
+/** Closes the level-up interface once the player dismisses it. */
 internal class SkillLevelUpHandler {
 
     fun handle(
@@ -38,4 +39,4 @@ internal class SkillLevelUpHandler {
         const val LEVEL_UP_INTERFACE: Int = 233
         const val CONTINUE_COMPONENT: Int = 3
     }
-}
+}

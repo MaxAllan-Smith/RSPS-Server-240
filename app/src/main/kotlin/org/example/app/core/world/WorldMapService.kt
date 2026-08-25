@@ -1,4 +1,4 @@
-package org.example.app.features.world
+package org.example.app.core.world
 
 import net.rsprot.protocol.game.outgoing.map.RebuildNormalV2
 import org.example.app.core.player.Player

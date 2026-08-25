@@ -10,6 +10,7 @@ import org.example.app.features.combat.state.combatEquipmentSyncState
 import org.example.app.features.combat.state.combatState
 import org.example.app.features.combat.ui.CombatInterfaceService
 
+/** Resyncs a player's worn-weapon appearance, equipment inventory display and combat category whenever their equipment revision changes. */
 internal class CombatEquipmentService(
     private val itemDefinitions: ItemDefinitionRepository,
     private val interfaceService: CombatInterfaceService,
@@ -167,4 +168,4 @@ internal class CombatEquipmentService(
         const val NO_SECONDARY_WEARPOS: Int = -1
         const val NO_TERTIARY_WEARPOS: Int = -1
     }
-}
+}

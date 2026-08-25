@@ -5,6 +5,7 @@ import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
 import org.example.app.features.skills.SkillService
 
+/** Development commands for setting or resetting skill levels during testing. */
 internal class SkillCommandHandler(
     private val skillService: SkillService,
 ) {
@@ -95,4 +96,4 @@ internal class SkillCommandHandler(
     private companion object {
         const val COMMAND: String = "xp"
     }
-}
+}

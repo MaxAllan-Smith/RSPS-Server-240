@@ -10,6 +10,7 @@ import org.example.app.core.skills.Skill
 import java.sql.Connection
 import java.sql.ResultSet
 
+/** Reads and writes [PlayerSaveData] to and from SQLite, keyed by normalized username. */
 class PlayerPersistenceRepository(
     private val database: SqliteDatabase,
 ) {
@@ -529,4 +530,4 @@ class PlayerPersistenceRepository(
                     "amount"
                 ),
         )
-}
+}

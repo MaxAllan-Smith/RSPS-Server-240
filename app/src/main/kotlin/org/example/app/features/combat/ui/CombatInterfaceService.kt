@@ -5,6 +5,7 @@ import org.example.app.features.combat.model.CombatWeaponCategory
 import org.example.app.features.combat.state.combatState
 import org.example.app.features.combat.weapon.CombatWeaponCategories
 
+/** Applies a weapon category to a player's combat UI state, normalizing their selected style if it's no longer valid for that category. */
 internal class CombatInterfaceService {
 
     fun setUnarmed(
@@ -77,4 +78,4 @@ internal class CombatInterfaceService {
         const val COMBAT_MODE_VARP: Int =
             43
     }
-}
+}

@@ -1,5 +1,6 @@
 package org.example.app.core.items
 
+/** In-memory lookup of [ItemDefinition]s loaded once from an [ItemDefinitionSource]. */
 class ItemDefinitionRepository(
     source: ItemDefinitionSource,
 ) {
@@ -15,4 +16,4 @@ class ItemDefinitionRepository(
         id: Int,
     ): ItemDefinition? =
         definitions[id]
-}
+}

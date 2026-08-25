@@ -93,4 +93,4 @@ internal object VarbitDefinitionLoader {
                 "Unexpected end of varbit $id."
             )
     }
-}
+}

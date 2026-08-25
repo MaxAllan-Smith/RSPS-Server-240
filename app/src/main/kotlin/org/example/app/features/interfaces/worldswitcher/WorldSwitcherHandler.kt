@@ -6,6 +6,7 @@ import org.example.app.features.interfaces.gameframe.GameframeLayout
 import org.example.app.features.interfaces.gameframe.GameframeService
 import org.example.app.features.interfaces.logout.LogoutTabView
 
+/** Handles opening the world-switcher interface from the logout tab. */
 internal class WorldSwitcherHandler(
     private val gameframeService: GameframeService,
 ) {
@@ -48,4 +49,4 @@ internal class WorldSwitcherHandler(
         const val OPTIONS_COMPONENT: Int = 4
         const val CLOSE_COMPONENT: Int = 5
     }
-}
+}

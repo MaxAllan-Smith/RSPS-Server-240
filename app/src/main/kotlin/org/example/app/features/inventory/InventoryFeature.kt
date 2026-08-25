@@ -18,14 +18,13 @@ import org.example.app.core.player.Player
  *
  * Gameplay-specific item actions belong to their respective gameplay features.
  */
-internal class InventoryFeature :
-    Feature {
+internal class InventoryFeature(
+    private val syncService:
+        InventorySyncService,
+) : Feature {
 
     override val id: String =
         "inventory"
-
-    private val syncService =
-        InventorySyncService()
 
     private val interfaceService =
         InventoryInterfaceService()
@@ -236,4 +235,4 @@ internal class InventoryFeature :
         const val INVENTORY_COMPONENT_ID: Int =
             0
     }
-}
+}

@@ -6,6 +6,7 @@ import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.features.combat.weapon.CombatWeaponEquipService
 
+/** Handles unequipping the currently-worn weapon from the equipment interface. */
 internal class CombatEquipmentHandler(
     itemDefinitions:
         ItemDefinitionRepository,
@@ -45,4 +46,4 @@ internal class CombatEquipmentHandler(
         const val WEAPON_COMPONENT: Int = 18
         const val REMOVE_OP: Int = 1
     }
-}
+}

@@ -6,7 +6,7 @@ import org.example.app.core.items.ItemStack
 import org.example.app.core.player.Player
 import org.example.app.core.player.sendGameMessage
 import org.example.app.core.skills.Skill
-import org.example.app.features.world.WorldLocService
+import org.example.app.core.world.WorldLocService
 import kotlin.random.Random
 
 /**
@@ -632,4 +632,4 @@ internal class WoodcuttingActionService(
         const val MAX_RETRY_TICKS: Int =
             4
     }
-}
+}

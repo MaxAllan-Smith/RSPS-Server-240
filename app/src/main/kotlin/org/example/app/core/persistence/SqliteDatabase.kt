@@ -7,6 +7,7 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 
+/** Owns the SQLite connection and schema migrations shared by every persistence/definition repository. */
 class SqliteDatabase(
     val file: Path,
 ) {
@@ -406,4 +407,4 @@ class SqliteDatabase(
             statement.executeUpdate()
         }
     }
-}
+}

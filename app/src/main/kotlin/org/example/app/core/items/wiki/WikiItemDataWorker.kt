@@ -5,6 +5,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Background scheduler that periodically refreshes wiki item data via [WikiItemDataClient] into [WikiItemDataRepository]. */
 class WikiItemDataWorker(
     private val client: WikiItemDataClient,
     private val repository: WikiItemDataRepository,
@@ -157,4 +158,4 @@ class WikiItemDataWorker(
         const val MAPPING_INTERVAL_HOURS: Long =
             6L
     }
-}
+}

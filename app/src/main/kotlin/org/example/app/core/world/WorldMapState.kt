@@ -1,4 +1,4 @@
-package org.example.app.features.world
+package org.example.app.core.world
 
 import org.example.app.core.player.Player
 

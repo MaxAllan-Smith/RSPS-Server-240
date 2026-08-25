@@ -14,6 +14,7 @@ import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Adapts the on-disk OpenRS2 cache into RSProt's JS5 group provider so the client can request cache files over the network. */
 class RsProtJs5Provider private constructor(
     private val store: Store,
 ) : Js5GroupProvider,
@@ -228,4 +229,4 @@ class RsProtJs5Provider private constructor(
             )
         }
     }
-}
+}

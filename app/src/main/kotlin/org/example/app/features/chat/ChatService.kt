@@ -2,6 +2,7 @@ package org.example.app.features.chat
 
 import org.example.app.core.player.Player
 
+/** Business rules for updating a player's chat mode settings. */
 internal class ChatService {
 
     fun updateChatModes(
@@ -51,4 +52,4 @@ internal class ChatService {
                 pattern = pattern,
             )
     }
-}
+}

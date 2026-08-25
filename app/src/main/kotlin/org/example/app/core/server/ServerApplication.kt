@@ -13,6 +13,7 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureDependencies
 import org.example.app.core.feature.FeatureRegistry
 import org.example.app.core.items.ItemDefinitionRepository
+import org.example.app.core.items.ItemOnItemDispatcher
 import org.example.app.core.items.SqliteItemDefinitionSource
 import org.example.app.core.items.wiki.WikiItemDataClient
 import org.example.app.core.items.wiki.WikiItemDataRepository
@@ -24,9 +25,13 @@ import org.example.app.core.player.PlayerManager
 import org.example.app.core.protocol.RsProtInfoSynchronizer
 import org.example.app.core.security.RsaKeyManager
 import org.example.app.core.vars.VarbitDefinitionRepository
+import org.example.app.core.world.GroundItemConfig
+import org.example.app.core.world.GroundItemService
 import org.example.app.core.world.WorldCollision
+import org.example.app.core.world.WorldLocService
 import org.example.app.core.world.collision.PrecomputedCollisionLoader
 import org.example.app.core.world.collision.RemoteCollisionMapProvider
+import org.example.app.core.world.collision.RoutePlanner
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -116,6 +121,27 @@ class ServerApplication(
                 cache.directory
             )
 
+        val routePlanner =
+            RoutePlanner(
+                collision =
+                    collision,
+            )
+
+        val worldLocs =
+            WorldLocService()
+
+        val groundItems =
+            GroundItemService(
+                config =
+                    GroundItemConfig(
+                        despawnTicks =
+                            config.groundItemDespawnTicks,
+                    ),
+            )
+
+        val itemOnItem =
+            ItemOnItemDispatcher()
+
         try {
             val features =
                 featureFactory(
@@ -128,6 +154,18 @@ class ServerApplication(
 
                         collision =
                             collision,
+
+                        routePlanner =
+                            routePlanner,
+
+                        worldLocs =
+                            worldLocs,
+
+                        groundItems =
+                            groundItems,
+
+                        itemOnItem =
+                            itemOnItem,
                     )
                 )
 
@@ -438,4 +476,4 @@ class ServerApplication(
         const val WIKI_USER_AGENT: String =
             "RSPS_RSProt_Server item-data-sync"
     }
-}
+}

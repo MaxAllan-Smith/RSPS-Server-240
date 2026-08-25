@@ -223,4 +223,4 @@ internal object WoodcuttingSuccessRates {
             low = low,
             high = high,
         )
-}
+}

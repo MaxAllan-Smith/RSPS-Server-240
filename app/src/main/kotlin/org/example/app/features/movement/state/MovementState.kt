@@ -67,4 +67,4 @@ internal val Player.movementState:
         featureState.getOrPut(
             MovementState::class,
             ::MovementState,
-        )
+        )

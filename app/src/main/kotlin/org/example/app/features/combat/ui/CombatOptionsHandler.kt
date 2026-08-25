@@ -5,6 +5,7 @@ import org.example.app.core.player.Player
 import org.example.app.features.combat.model.CombatStyle
 import org.example.app.features.combat.state.combatState
 
+/** Handles attack-style selection clicks on the combat options interface. */
 internal class CombatOptionsHandler {
 
     fun handle(

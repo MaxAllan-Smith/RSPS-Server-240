@@ -5,6 +5,7 @@ import org.example.app.core.engine.GameContext
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.features.skills.commands.SkillCommandHandler
+import org.example.app.features.skills.guide.SkillGuideHandler
 import org.example.app.features.skills.levelup.SkillLevelUpHandler
 import org.example.app.features.skills.levelup.SkillLevelUpService
 import org.example.app.features.skills.unlocks.SkillUnlockLoader
@@ -42,6 +43,9 @@ internal class SkillsFeature : Feature {
     private val skillLevelUpHandler =
         SkillLevelUpHandler()
 
+    private val skillGuideHandler =
+        SkillGuideHandler()
+
     override val id: String =
         "skills"
 
@@ -59,6 +63,14 @@ internal class SkillsFeature : Feature {
                     packet = packet,
                 )
             }
+        }
+
+        // Owns both the stats-tab guide button and the skill-guide interface itself.
+        registrar.onInterfaceButton { player, packet ->
+            skillGuideHandler.handle(
+                player = player,
+                packet = packet,
+            )
         }
 
         registrar.beforeInfoUpdate(
@@ -112,4 +124,4 @@ internal class SkillsFeature : Feature {
         const val SKILLS_PRIORITY: Int =
             90
     }
-}
+}

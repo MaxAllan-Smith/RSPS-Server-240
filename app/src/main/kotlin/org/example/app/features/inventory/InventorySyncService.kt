@@ -2,13 +2,20 @@ package org.example.app.features.inventory
 
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
+import org.example.app.core.inventory.InventoryUiSync
 import org.example.app.core.inventory.PlayerInventory
 import org.example.app.core.player.Player
 import org.example.app.features.inventory.state.inventoryState
 
-internal class InventorySyncService {
+/**
+ * Sends the full inventory contents to the client whenever its revision
+ * changes, and implements the core-owned [InventoryUiSync] contract so other
+ * features (combat's equip/unequip handlers) can request an immediate resync
+ * without depending on this class directly.
+ */
+internal class InventorySyncService : InventoryUiSync {
 
-    fun synchronize(
+    override fun synchronize(
         player: Player,
     ) {
         val currentRevision =
@@ -47,4 +54,4 @@ internal class InventorySyncService {
     private companion object {
         const val INVENTORY_ID: Int = 93
     }
-}
+}

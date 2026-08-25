@@ -2,6 +2,7 @@ package org.example.app.core.equipment
 
 import org.example.app.core.items.ItemStack
 
+/** Per-player worn-item container, revisioned so sync services can detect changes cheaply. */
 class PlayerEquipment {
 
     private val items: Array<ItemStack?> =
@@ -52,4 +53,4 @@ class PlayerEquipment {
     private companion object {
         const val CAPACITY: Int = 14
     }
-}
+}

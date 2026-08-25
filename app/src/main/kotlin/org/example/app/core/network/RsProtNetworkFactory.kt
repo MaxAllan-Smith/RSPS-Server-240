@@ -13,6 +13,7 @@ import org.example.app.core.config.ServerConfig
 import org.example.app.core.feature.FeatureRuntime
 import org.example.app.core.player.Player
 
+/** Builds and configures the RSProt network service (login, JS5, huffman, game message dispatch) from [ServerConfig] and the installed [org.example.app.core.feature.FeatureRuntime]. */
 class RsProtNetworkFactory(
     config: ServerConfig,
     private val rsaKey: RsaKeyPair,

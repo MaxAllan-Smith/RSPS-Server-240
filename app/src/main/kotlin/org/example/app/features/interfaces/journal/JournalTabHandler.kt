@@ -5,6 +5,7 @@ import org.example.app.core.player.Player
 import org.example.app.features.interfaces.gameframe.GameframeLayout
 import org.example.app.features.interfaces.gameframe.GameframeService
 
+/** Handles clicks that switch the active journal sub-tab. */
 internal class JournalTabHandler(
     private val gameframeService: GameframeService,
 ) {
@@ -30,4 +31,4 @@ internal class JournalTabHandler(
             tab = tab,
         )
     }
-}
+}

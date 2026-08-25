@@ -3,6 +3,7 @@ package org.example.app.features.chat
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import org.example.app.core.player.Player
 
+/** Decodes the incoming public-chat packet and hands it to [ChatService]. */
 internal class PublicChatHandler(
     private val chatService: ChatService,
 ) {
@@ -55,4 +56,4 @@ internal class PublicChatHandler(
         const val AUTOTYPER_TYPE: Int =
             1
     }
-}
+}

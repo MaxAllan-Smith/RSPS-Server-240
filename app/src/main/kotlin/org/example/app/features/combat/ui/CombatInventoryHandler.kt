@@ -6,6 +6,7 @@ import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.player.Player
 import org.example.app.features.combat.weapon.CombatWeaponEquipService
 
+/** Handles wielding a weapon from the inventory interface. */
 internal class CombatInventoryHandler(
     itemDefinitions:
         ItemDefinitionRepository,
@@ -47,4 +48,4 @@ internal class CombatInventoryHandler(
         const val INVENTORY_COMPONENT: Int = 0
         const val WIELD_OP: Int = 3
     }
-}
+}

@@ -9,6 +9,7 @@ import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 import org.example.app.features.skills.levelup.skillLevelUpState
 
+/** Opens the skill guide interface for a clicked skill and handles clicks within it. */
 internal class SkillGuideHandler {
 
     fun handle(
@@ -171,4 +172,4 @@ internal class SkillGuideHandler {
 
         const val OP1_EVENT: Int = 1
     }
-}
+}

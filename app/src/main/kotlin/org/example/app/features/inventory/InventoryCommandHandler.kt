@@ -3,6 +3,7 @@ package org.example.app.features.inventory
 import org.example.app.core.items.ItemStack
 import org.example.app.core.player.Player
 
+/** Development commands for adding/clearing inventory items during testing. */
 internal class InventoryCommandHandler {
 
     fun handle(
@@ -74,4 +75,4 @@ internal class InventoryCommandHandler {
         const val GIVE_ITEM_COMMAND: String =
             "giveitem"
     }
-}
+}

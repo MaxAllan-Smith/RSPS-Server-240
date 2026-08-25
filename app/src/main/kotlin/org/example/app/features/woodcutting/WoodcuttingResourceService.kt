@@ -186,4 +186,4 @@ internal class WoodcuttingResourceService {
         val position: WorldPosition,
         val shape: Int,
     )
-}
+}

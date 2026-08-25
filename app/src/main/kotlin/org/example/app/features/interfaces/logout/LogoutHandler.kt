@@ -5,6 +5,7 @@ import net.rsprot.protocol.game.outgoing.logout.Logout
 import org.example.app.core.player.Player
 import org.example.app.features.interfaces.gameframe.GameframeLayout
 
+/** Handles the logout button on both the logout tab and the world-switcher interface. */
 internal class LogoutHandler {
 
     fun handle(
@@ -43,4 +44,4 @@ internal class LogoutHandler {
         const val LOGOUT_COMPONENT: Int = 8
         const val WORLD_SWITCHER_LOGOUT_COMPONENT: Int = 25
     }
-}
+}

@@ -5,6 +5,7 @@ import org.example.app.core.player.Player
 import org.example.app.features.interfaces.gameframe.GameframeLayout
 import org.example.app.features.interfaces.gameframe.GameframeService
 
+/** Handles clicks that switch the active social (friends/ignore/clan) sub-view. */
 internal class SocialTabHandler(
     private val gameframeService: GameframeService,
 ) {
@@ -42,4 +43,4 @@ internal class SocialTabHandler(
     private companion object {
         const val SWITCH_LIST_COMPONENT: Int = 1
     }
-}
+}

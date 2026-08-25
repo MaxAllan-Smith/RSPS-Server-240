@@ -6,6 +6,7 @@ import org.example.app.features.interfaces.journal.JournalTab
 import org.example.app.features.interfaces.logout.LogoutTabView
 import org.example.app.features.interfaces.social.SocialView
 
+/** Mounts and tracks the top-level game-frame chrome (tabs, minimap, XP drops) once per login. */
 internal class GameframeService {
 
     fun mountInitialLayout(player: Player) {
@@ -281,4 +282,4 @@ internal class GameframeService {
         const val JOURNAL_TAB_VARBIT: Int = 8168
         const val JOURNAL_QUEST_TAB: Int = 1
     }
-}
+}

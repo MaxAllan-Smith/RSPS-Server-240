@@ -7,6 +7,7 @@ import org.example.app.features.combat.model.CombatWeaponCategory
 import org.example.app.features.combat.style.CombatStyleResolver
 import org.example.app.features.combat.ui.CombatInterfaceService
 
+/** Development commands for forcing a weapon category/combat style, useful for testing without real equipment. */
 internal class CombatCommandHandler(
     private val interfaceService: CombatInterfaceService,
 ) {
@@ -162,4 +163,4 @@ internal class CombatCommandHandler(
         const val UNEQUIP_WEAPON_COMMAND: String =
             "unequipweapon"
     }
-}
+}

@@ -1,5 +1,6 @@
 package org.example.app.core.feature
 
+import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepository
 import net.rsprot.protocol.message.codec.incoming.GameMessageConsumerRepositoryBuilder
@@ -8,6 +9,7 @@ import org.example.app.core.network.LoginAttempt
 import org.example.app.core.network.ReconnectAttempt
 import org.example.app.core.player.Player
 
+/** The core DI/composition contract: [Feature]s register lifecycle hooks through [FeatureRegistrar], and [FeatureRegistry] turns those registrations into one [FeatureRuntime] the game engine and network layer drive. */
 typealias FeatureCommandHandler =
     (Player, String, List<String>) -> Boolean
 
@@ -28,6 +30,18 @@ class FeatureRegistry {
 
     private val commandHandlers =
         mutableListOf<FeatureCommandHandler>()
+
+    /*
+     * A single RSProt If3Button game-message listener can be registered per
+     * repository, yet many unrelated interfaces (journal, social, combat
+     * style, equipment, inventory, skill guide, ...) all arrive on that one
+     * packet type. Every interested feature registers its own handler here
+     * instead of one feature owning routing for everyone else's clicks.
+     */
+    private val interfaceButtonHandlers =
+        mutableListOf<
+            OrderedHandler<(Player, If3Button) -> Unit>
+        >()
 
     private val cycleStartHandlers =
         mutableListOf<
@@ -122,6 +136,19 @@ class FeatureRegistry {
         commandHandlers += handler
     }
 
+    internal fun registerInterfaceButton(
+        featureId: String,
+        priority: Int,
+        handler: (Player, If3Button) -> Unit,
+    ) {
+        interfaceButtonHandlers +=
+            ordered(
+                featureId = featureId,
+                priority = priority,
+                handler = handler,
+            )
+    }
+
     internal fun registerCycleStart(
         featureId: String,
         priority: Int,
@@ -172,6 +199,15 @@ class FeatureRegistry {
                 player = this,
                 rawCommand = packet.command,
             )
+        }
+
+        val sortedInterfaceButtonHandlers =
+            interfaceButtonHandlers.sorted()
+
+        builder.addListener<If3Button> { packet ->
+            for (registration in sortedInterfaceButtonHandlers) {
+                registration.handler(this, packet)
+            }
         }
 
         for (configuration in packetConfigurations) {
@@ -233,6 +269,20 @@ class FeatureRegistrar internal constructor(
         handler: FeatureCommandHandler,
     ) {
         registry.registerCommand(handler)
+    }
+
+    // Observes the shared If3Button game message. Every feature with its own
+    // interface (journal, combat style, equipment, skill guide, ...)
+    // registers its own handler rather than one feature routing for all.
+    fun onInterfaceButton(
+        priority: Int = 0,
+        handler: (Player, If3Button) -> Unit,
+    ) {
+        registry.registerInterfaceButton(
+            featureId = featureId,
+            priority = priority,
+            handler = handler,
+        )
     }
 
     // Runs once at the start of a server game cycle.
@@ -408,4 +458,4 @@ internal data class OrderedHandler<T>(
             )
         }
     }
-}
+}

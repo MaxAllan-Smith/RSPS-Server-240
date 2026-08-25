@@ -1,22 +1,22 @@
 package org.example.app.features.interfaces
 
-import net.rsprot.protocol.game.incoming.buttons.If3Button
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
-import org.example.app.core.items.ItemDefinitionRepository
-import org.example.app.features.combat.ui.CombatEquipmentHandler
-import org.example.app.features.combat.ui.CombatInventoryHandler
-import org.example.app.features.combat.ui.CombatOptionsHandler
 import org.example.app.features.interfaces.gameframe.GameframeService
 import org.example.app.features.interfaces.journal.JournalTabHandler
 import org.example.app.features.interfaces.logout.LogoutHandler
 import org.example.app.features.interfaces.social.SocialTabHandler
 import org.example.app.features.interfaces.worldswitcher.WorldSwitcherHandler
-import org.example.app.features.skills.guide.SkillGuideHandler
 
+/**
+ * Generic game-frame chrome: the journal, social, logout and world-switcher
+ * tabs, plus the initial interface layout mount.
+ *
+ * Gameplay-specific interfaces (combat style/equipment, the skill guide,
+ * ...) register their own [FeatureRegistrar.onInterfaceButton] handlers from
+ * their own owning feature rather than being wired in here.
+ */
 internal class InterfaceFeature(
-    itemDefinitions:
-        ItemDefinitionRepository,
     private val gameframeService:
         GameframeService =
         GameframeService(),
@@ -43,88 +43,34 @@ internal class InterfaceFeature(
                 gameframeService,
         )
 
-    private val skillGuideHandler =
-        SkillGuideHandler()
-
-    private val combatOptionsHandler =
-        CombatOptionsHandler()
-
-    private val combatInventoryHandler =
-        CombatInventoryHandler(
-            itemDefinitions =
-                itemDefinitions,
-        )
-
-    private val combatEquipmentHandler =
-        CombatEquipmentHandler(
-            itemDefinitions =
-                itemDefinitions,
-        )
-
-    private val equipmentInteractionSyncService =
-        EquipmentInteractionSyncService(
-            itemDefinitions =
-                itemDefinitions,
-        )
-
     override val id: String =
         "interfaces"
 
     override fun install(
         registrar: FeatureRegistrar,
     ) {
-        registrar.packets {
-            addListener<If3Button> { packet ->
-                journalTabHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
+        registrar.onInterfaceButton(
+            priority = INTERFACE_PRIORITY,
+        ) { player, packet ->
+            journalTabHandler.handle(
+                player = player,
+                packet = packet,
+            )
 
-                socialTabHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
+            socialTabHandler.handle(
+                player = player,
+                packet = packet,
+            )
 
-                logoutHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
+            logoutHandler.handle(
+                player = player,
+                packet = packet,
+            )
 
-                worldSwitcherHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
-
-                skillGuideHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
-
-                combatOptionsHandler.handle(
-                    player = this,
-                    packet = packet,
-                )
-
-                val inventoryChanged =
-                    combatInventoryHandler.handle(
-                        player = this,
-                        packet = packet,
-                    )
-
-                val equipmentChanged =
-                    combatEquipmentHandler.handle(
-                        player = this,
-                        packet = packet,
-                    )
-
-                if (
-                    inventoryChanged ||
-                    equipmentChanged
-                ) {
-                    equipmentInteractionSyncService
-                        .synchronize(this)
-                }
-            }
+            worldSwitcherHandler.handle(
+                player = player,
+                packet = packet,
+            )
         }
 
         registrar.beforeInfoUpdate(

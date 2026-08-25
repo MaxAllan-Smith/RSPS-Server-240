@@ -1,5 +1,6 @@
 package org.example.app.core.player
 
+/** An absolute world tile (x, z, level) plus the zone coordinates derived from it. */
 data class WorldPosition(
     val x: Int,
     val z: Int,

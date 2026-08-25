@@ -5,10 +5,10 @@ import org.example.app.core.engine.GameContext
 import org.example.app.core.experience.ExperienceService
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.core.movement.MovementCoordinator
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
-import org.example.app.features.movement.MovementService
-import org.example.app.features.world.WorldLocService
+import org.example.app.core.world.WorldLocService
 
 /**
  * Woodcutting vertical slice.
@@ -22,7 +22,7 @@ import org.example.app.features.world.WorldLocService
  */
 class WoodcuttingFeature(
     private val movement:
-        MovementService,
+        MovementCoordinator,
 
     private val worldLocs:
         WorldLocService,
@@ -291,4 +291,4 @@ class WoodcuttingFeature(
         const val WOODCUTTING_PRIORITY: Int =
             20
     }
-}
+}

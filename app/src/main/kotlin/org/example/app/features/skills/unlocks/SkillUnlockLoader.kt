@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import org.openrs2.cache.Cache
 import java.nio.file.Path
 
+/** Loads the per-skill level-up unlock text table from the cache. */
 internal object SkillUnlockLoader {
 
     fun load(cacheDirectory: Path): SkillUnlockRepository {
@@ -210,4 +211,4 @@ internal object SkillUnlockLoader {
 
     private const val NO_SUBSECTION: Int = -1
     private const val END_COLUMNS: Int = 255
-}
+}

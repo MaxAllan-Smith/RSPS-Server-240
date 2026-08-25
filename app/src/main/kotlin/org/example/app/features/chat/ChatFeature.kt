@@ -4,6 +4,7 @@ import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 
+/** Chat vertical slice: applies client chat-mode changes and relays public chat messages. */
 internal class ChatFeature(
     private val chatService: ChatService =
         ChatService(),
@@ -29,4 +30,4 @@ internal class ChatFeature(
             }
         }
     }
-}
+}

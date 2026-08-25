@@ -151,4 +151,4 @@ private val Player.experienceRateState:
         featureState.getOrPut(
             ExperienceRateState::class,
             ::ExperienceRateState,
-        )
+        )

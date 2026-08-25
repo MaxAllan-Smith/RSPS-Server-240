@@ -2,6 +2,7 @@ package org.example.app.features.inventory.state
 
 import org.example.app.core.player.Player
 
+/** Per-player inventory UI sync/initialization state. */
 internal class InventoryState {
     var synchronizedRevision: Int = -1
 
@@ -13,4 +14,4 @@ internal val Player.inventoryState: InventoryState
         featureState.getOrPut(
             InventoryState::class,
             ::InventoryState,
-        )
+        )

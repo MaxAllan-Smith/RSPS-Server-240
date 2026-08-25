@@ -90,4 +90,4 @@ class Player(
             "resizable=$resizable" +
             ")"
     }
-}
+}

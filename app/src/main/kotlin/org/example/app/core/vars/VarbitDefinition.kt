@@ -37,4 +37,4 @@ data class VarbitDefinition(
             } else {
                 (1 shl bitCount) - 1
             }
-}
+}

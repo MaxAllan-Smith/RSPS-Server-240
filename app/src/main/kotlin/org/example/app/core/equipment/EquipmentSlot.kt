@@ -1,5 +1,6 @@
 package org.example.app.core.equipment
 
+/** The wearable equipment slots and their RSProt/cache slot ids. */
 enum class EquipmentSlot(
     val id: Int,
 ) {
@@ -14,4 +15,4 @@ enum class EquipmentSlot(
     FEET(10),
     RING(12),
     AMMO(13),
-}
+}

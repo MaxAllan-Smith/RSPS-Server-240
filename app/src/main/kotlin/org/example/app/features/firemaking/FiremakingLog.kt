@@ -255,4 +255,4 @@ internal enum class FiremakingLog(
                 itemId
             ]
     }
-}
+}

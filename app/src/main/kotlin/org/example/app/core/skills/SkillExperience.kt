@@ -3,6 +3,7 @@ package org.example.app.core.skills
 import kotlin.math.floor
 import kotlin.math.pow
 
+/** OSRS's canonical experience-to-level lookup table and the fractional (thousandths) experience arithmetic built on top of it. */
 object SkillExperience {
 
     const val MAX_LEVEL: Int = 99
@@ -45,4 +46,4 @@ object SkillExperience {
 
         return 1
     }
-}
+}

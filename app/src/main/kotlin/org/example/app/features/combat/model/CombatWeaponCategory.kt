@@ -1,5 +1,6 @@
 package org.example.app.features.combat.model
 
+/** Type-safe wrapper around the cache's numeric weapon category id. */
 @JvmInline
 internal value class CombatWeaponCategory(
     val id: Int,
@@ -20,4 +21,4 @@ internal value class CombatWeaponCategory(
         val WHIP =
             CombatWeaponCategory(20)
     }
-}
+}

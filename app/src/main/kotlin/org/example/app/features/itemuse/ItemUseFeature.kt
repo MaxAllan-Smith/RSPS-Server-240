@@ -4,6 +4,8 @@ import net.rsprot.protocol.game.incoming.buttons.IfButtonT
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.inventory.PlayerInventory
+import org.example.app.core.items.ItemOnItemDispatcher
+import org.example.app.core.items.ItemOnItemInteraction
 import org.example.app.core.player.Player
 import org.example.app.core.player.sendGameMessage
 
@@ -188,4 +190,4 @@ internal class ItemUseFeature(
         const val INVENTORY_COMPONENT_ID: Int =
             0
     }
-}
+}

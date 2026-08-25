@@ -1,5 +1,6 @@
 package org.example.app.features.interfaces.gameframe
 
+/** Maps each side-panel tab to its game-frame slot and interface id. */
 internal enum class GameframeTab(
     val slot: Int,
     val interfaceId: Int,
@@ -68,4 +69,4 @@ internal enum class GameframeTab(
         slot = GameframeLayout.Slot.MUSIC,
         interfaceId = GameframeLayout.Interface.MUSIC,
     ),
-}
+}

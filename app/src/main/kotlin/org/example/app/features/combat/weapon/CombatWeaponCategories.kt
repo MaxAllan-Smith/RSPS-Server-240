@@ -7,6 +7,7 @@ import org.example.app.features.combat.model.CombatStyleDefinition
 import org.example.app.features.combat.model.CombatWeaponCategory
 import org.example.app.features.combat.model.CombatWeaponCategoryDefinition
 
+/** Static table of weapon categories to their available attack styles. */
 internal object CombatWeaponCategories {
 
     val UNARMED =
@@ -109,4 +110,4 @@ internal object CombatWeaponCategories {
         category: CombatWeaponCategory,
     ): CombatWeaponCategoryDefinition? =
         definitions[category]
-}
+}

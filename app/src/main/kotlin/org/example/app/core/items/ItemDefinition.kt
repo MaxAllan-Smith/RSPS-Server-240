@@ -3,6 +3,7 @@ package org.example.app.core.items
 import org.example.app.core.equipment.EquipmentDefinition
 import org.example.app.core.equipment.WeaponDefinition
 
+/** Static per-item data: optional equipment and weapon definitions layered on top of a bare item id. */
 data class ItemDefinition(
     val id: Int,
     val equipment: EquipmentDefinition? = null,
@@ -20,4 +21,4 @@ data class ItemDefinition(
             "Weapon item $id must have equipment metadata."
         }
     }
-}
+}

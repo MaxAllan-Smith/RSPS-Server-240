@@ -10,6 +10,7 @@ import org.example.app.core.persistence.PlayerSaveData
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 
+/** Drains queued login attempts on the game thread, restores persisted state and sends the RSProt login response. */
 internal class LoginProcessor(
     private val queue: LoginQueue,
 ) {
@@ -275,4 +276,4 @@ internal class LoginProcessor(
             )
         }
     }
-}
+}

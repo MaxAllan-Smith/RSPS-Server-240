@@ -4,6 +4,7 @@ import org.example.app.core.player.Player
 import org.example.app.core.skills.Skill
 import org.example.app.core.skills.SkillChange
 
+/** Per-skill level-up unlock text and the per-player state tracking which level-up interface is pending. */
 internal data class SkillLevelUpUnlocks(
     val skill: Skill,
     val firstLevel: Int,
@@ -43,4 +44,4 @@ internal val Player.skillLevelUpState: SkillLevelUpState
         featureState.getOrPut(
             SkillLevelUpState::class,
             ::SkillLevelUpState,
-        )
+        )

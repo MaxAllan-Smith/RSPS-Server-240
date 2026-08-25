@@ -2,6 +2,7 @@ package org.example.app.features.skills.unlocks
 
 import org.example.app.core.skills.Skill
 
+/** Read access to which levels have unlock text configured, per skill. */
 internal class SkillUnlockRepository(
     private val levelsBySkill: Map<Int, Set<Int>>,
 ) {
@@ -32,4 +33,4 @@ internal class SkillUnlockRepository(
             it in firstLevel..lastLevel
         }
     }
-}
+}

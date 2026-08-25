@@ -2,6 +2,7 @@ package org.example.app.features.chat
 
 import org.example.app.core.player.Player
 
+/** Per-player chat mode and last-message state. */
 data class ChatState(
     var publicMode: Int = 0,
     var privateMode: Int = 0,

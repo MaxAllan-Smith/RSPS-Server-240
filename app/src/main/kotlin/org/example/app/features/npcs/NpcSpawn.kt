@@ -50,4 +50,4 @@ internal data class NpcSpawn(
         const val SOUTH_EAST: Int =
             7
     }
-}
+}

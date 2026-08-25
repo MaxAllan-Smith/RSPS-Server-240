@@ -3,6 +3,8 @@ package org.example.app.features.world
 import net.rsprot.protocol.game.incoming.misc.client.MapBuildComplete
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.core.world.WorldLocService
+import org.example.app.core.world.WorldMapService
 
 /**
  * Owns client world bootstrap, normal scene rebuilding and shared dynamic
@@ -21,6 +23,9 @@ class WorldBootstrapFeature(
     private val mapService =
         WorldMapService()
 
+    private val loginBootstrap =
+        LoginBootstrapService()
+
     override val id: String =
         "world-bootstrap"
 
@@ -29,7 +34,7 @@ class WorldBootstrapFeature(
     ) {
         registrar.packets {
             addListener<MapBuildComplete> { _ ->
-                WorldBootstrapper
+                loginBootstrap
                     .markMapBuildComplete(
                         this
                     )
@@ -53,7 +58,7 @@ class WorldBootstrapFeature(
                 player,
             ->
             val loginRebuildQueued =
-                WorldBootstrapper
+                loginBootstrap
                     .beforeInfoUpdate(
                         player
                     )
@@ -82,4 +87,4 @@ class WorldBootstrapFeature(
         const val WORLD_STATE_PRIORITY: Int =
             0
     }
-}
+}

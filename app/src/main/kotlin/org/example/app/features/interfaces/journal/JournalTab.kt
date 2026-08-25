@@ -2,6 +2,7 @@ package org.example.app.features.interfaces.journal
 
 import org.example.app.features.interfaces.gameframe.GameframeLayout
 
+/** The sub-tabs of the journal (quest list, achievement diary, ...) and their interface ids. */
 internal enum class JournalTab(
     val componentId: Int,
     val varbitValue: Int,
@@ -31,4 +32,4 @@ internal enum class JournalTab(
                 it.componentId == componentId
             }
     }
-}
+}

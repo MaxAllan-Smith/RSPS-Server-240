@@ -2,6 +2,7 @@ package org.example.app.features.interfaces.logout
 
 import org.example.app.features.interfaces.gameframe.GameframeLayout
 
+/** The logout tab's interface id. */
 internal enum class LogoutTabView(
     val interfaceId: Int,
 ) {
@@ -12,4 +13,4 @@ internal enum class LogoutTabView(
     WORLD_SWITCHER(
         interfaceId = GameframeLayout.Interface.WORLD_SWITCHER,
     ),
-}
+}

@@ -9,6 +9,7 @@ import java.util.Comparator
 import java.util.Properties
 import java.util.zip.ZipInputStream
 
+/** Downloads and caches one pinned OpenRS2 cache snapshot on disk so the server is deterministic across restarts. */
 data class PreparedCache(
     val directory: Path,
     val metadata: OpenRs2CacheEntry,
@@ -272,4 +273,4 @@ class CacheBootstrap(
         private const val METADATA_FILE =
             ".openrs2-cache.properties"
     }
-}
+}

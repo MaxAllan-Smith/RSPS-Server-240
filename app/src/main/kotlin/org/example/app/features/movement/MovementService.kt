@@ -1,26 +1,31 @@
 package org.example.app.features.movement
 
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
+import org.example.app.core.movement.MovementCoordinator
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
+import org.example.app.core.world.collision.RoutePlanner
 import org.example.app.features.movement.state.MovementState
 import org.example.app.features.movement.state.movementState
 
 /**
  * Shared authoritative walking/running service.
+ *
+ * Implements the core-owned [MovementCoordinator] contract so other features
+ * can request movement without depending on this concrete class.
  */
 class MovementService internal constructor(
     private val planner: RoutePlanner,
 
     private val config:
         MovementConfig,
-) {
+) : MovementCoordinator {
 
-    fun request(
+    override fun request(
         player: Player,
         x: Int,
         z: Int,
-        keyCombination: Int = 0,
+        keyCombination: Int,
     ): Boolean {
         val destination =
             WorldPosition(
@@ -73,12 +78,12 @@ class MovementService internal constructor(
         return true
     }
 
-    fun requestNear(
+    override fun requestNear(
         player: Player,
         x: Int,
         z: Int,
         maximumRadius: Int,
-        keyCombination: Int = 0,
+        keyCombination: Int,
     ): WorldPosition? {
         val target =
             WorldPosition(
@@ -546,7 +551,7 @@ class MovementService internal constructor(
         }
     }
 
-    fun clear(
+    override fun clear(
         player: Player,
     ) {
         val state =
@@ -593,4 +598,4 @@ internal data class MovementConfig(
                 0
         )
     }
-}
+}

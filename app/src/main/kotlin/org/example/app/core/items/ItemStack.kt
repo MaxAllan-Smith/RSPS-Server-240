@@ -1,5 +1,6 @@
 package org.example.app.core.items
 
+/** An item id plus a positive amount; the basic unit moved between inventory, equipment and the world. */
 data class ItemStack(
     val id: Int,
     val amount: Int = 1,
@@ -13,4 +14,4 @@ data class ItemStack(
             "Item amount must be positive."
         }
     }
-}
+}

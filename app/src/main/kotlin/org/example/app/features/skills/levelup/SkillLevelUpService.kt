@@ -12,6 +12,7 @@ import org.example.app.core.skills.SkillExperience
 import org.example.app.features.skills.levelup.skillLevelUpState
 import org.example.app.features.skills.unlocks.SkillUnlockService
 
+/** Awards experience-driven level-ups: detects level increases, plays the level-up interface/sound and shows unlock text. */
 internal class SkillLevelUpService(
     private val unlocks: SkillUnlockService,
 ) {
@@ -234,4 +235,4 @@ internal class SkillLevelUpService(
                 'u',
             )
     }
-}
+}

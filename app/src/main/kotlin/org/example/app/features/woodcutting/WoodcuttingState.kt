@@ -66,4 +66,4 @@ internal val Player.woodcuttingState:
         featureState.getOrPut(
             WoodcuttingState::class,
             ::WoodcuttingState,
-        )
+        )

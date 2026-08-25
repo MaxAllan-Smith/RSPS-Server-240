@@ -6,6 +6,7 @@ import net.rsprot.compression.provider.HuffmanCodecProvider
 import org.openrs2.cache.Cache
 import java.nio.file.Path
 
+/** Loads the cache's Huffman compression table used by RSProt for chat/message compression. */
 object HuffmanLoader {
     private const val BINARY_ARCHIVE = 10
     private const val HUFFMAN_GROUP = "huffman"
@@ -42,4 +43,4 @@ object HuffmanLoader {
             }
         }
     }
-}
+}

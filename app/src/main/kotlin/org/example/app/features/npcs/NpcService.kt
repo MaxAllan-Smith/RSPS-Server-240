@@ -2,7 +2,7 @@ package org.example.app.features.npcs
 
 import org.example.app.core.engine.GameContext
 import org.example.app.core.player.WorldPosition
-import org.example.app.features.movement.RoutePlanner
+import org.example.app.core.world.collision.RoutePlanner
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -321,4 +321,4 @@ internal class NpcService(
                 ),
             )
     }
-}
+}

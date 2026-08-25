@@ -8,6 +8,7 @@ import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Owns the fixed-rate game cycle and network pulse scheduling that drives every feature's cycle/info-update hooks. */
 class GameEngine(
     private val context: GameContext,
     private val features: FeatureRuntime,
@@ -194,4 +195,4 @@ class GameEngine(
     private companion object {
         const val NETWORK_PULSE_MILLIS: Long = 20L
     }
-}
+}

@@ -1,5 +1,6 @@
 package org.example.app.core.skills
 
+/** One skill's experience/level delta produced by an experience award, used to drive level-up detection and client sync. */
 data class SkillChange(
     val skill: Skill,
     val previousExperience: Int,
@@ -15,4 +16,4 @@ data class SkillChange(
 
     val levelledUp: Boolean
         get() = gainedLevels > 0
-}
+}

@@ -3,6 +3,7 @@ package org.example.app.core.items.wiki
 import org.example.app.core.persistence.SqliteDatabase
 import java.sql.Connection
 
+/** Persists the latest synced wiki item price/name mapping to SQLite. */
 class WikiItemDataRepository(
     private val database: SqliteDatabase,
 ) {
@@ -459,4 +460,4 @@ class WikiItemDataRepository(
         const val INTERVAL_1H: String =
             "1h"
     }
-}
+}

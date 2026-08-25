@@ -40,4 +40,4 @@ internal class NpcFeature(
         const val NPC_CYCLE_PRIORITY: Int =
             -900
     }
-}
+}

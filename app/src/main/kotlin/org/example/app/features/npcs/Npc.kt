@@ -23,4 +23,4 @@ internal data class Npc(
      */
     var wanderDelay: Int =
         0
-}
+}

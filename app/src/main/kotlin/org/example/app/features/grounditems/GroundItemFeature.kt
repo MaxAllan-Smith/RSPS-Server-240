@@ -6,10 +6,11 @@ import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.inventory.PlayerInventory
+import org.example.app.core.movement.MovementCoordinator
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 import org.example.app.core.player.sendGameMessage
-import org.example.app.features.movement.MovementService
+import org.example.app.core.world.GroundItemService
 
 /**
  * Generic inventory-drop and ground-item interaction feature.
@@ -28,7 +29,7 @@ internal class GroundItemFeature(
         GroundItemService,
 
     private val movement:
-        MovementService,
+        MovementCoordinator,
 ) : Feature {
 
     override val id: String =
@@ -507,4 +508,4 @@ private val Player.groundItemInteractionState:
         featureState.getOrPut(
             GroundItemInteractionState::class,
             ::GroundItemInteractionState,
-        )
+        )

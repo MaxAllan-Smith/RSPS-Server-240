@@ -8,6 +8,7 @@ import org.example.app.core.persistence.SqliteDatabase
 import org.example.app.core.skills.Skill
 import java.sql.Connection
 
+/** Loads item definitions (equipment slot, skill requirements, weapon category) from the SQLite database. */
 class SqliteItemDefinitionSource(
     private val database: SqliteDatabase,
 ) : ItemDefinitionSource {
@@ -188,4 +189,4 @@ class SqliteItemDefinitionSource(
             value
         }
     }
-}
+}

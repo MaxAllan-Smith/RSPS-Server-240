@@ -2,6 +2,7 @@ package org.example.app.features.skills.unlocks
 
 import org.example.app.core.skills.Skill
 
+/** Lazily-initialized holder for the loaded [SkillUnlockRepository]. */
 internal class SkillUnlockService {
 
     private var repository:
@@ -37,4 +38,4 @@ internal class SkillUnlockService {
             lastLevel = lastLevel,
         )
     }
-}
+}

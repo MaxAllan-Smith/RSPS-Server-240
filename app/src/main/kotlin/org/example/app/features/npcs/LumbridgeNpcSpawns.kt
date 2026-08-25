@@ -200,4 +200,4 @@ internal object LumbridgeNpcSpawns {
 
     private const val GOBLIN_LEVEL_5: Int =
         3045
-}
+}

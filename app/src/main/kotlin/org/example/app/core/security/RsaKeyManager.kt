@@ -10,6 +10,7 @@ import java.security.interfaces.RSAPrivateCrtKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.util.Base64
 
+/** Loads an existing RSA key pair from disk or generates and persists a new one, used to decrypt RSProt login blocks. */
 data class RsaMaterial(
     val rsProtKey: RsaKeyPair,
     val modulus: BigInteger,
@@ -154,4 +155,4 @@ object RsaKeyManager {
             },
         )
     }
-}
+}

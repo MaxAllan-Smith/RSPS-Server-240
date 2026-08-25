@@ -9,6 +9,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
+/** HTTP client for the OSRS Wiki real-time prices API. */
 class WikiItemDataClient(
     private val baseUrl: String,
     private val userAgent: String,
@@ -158,4 +159,4 @@ data class WikiAveragePrice(
     val highPriceVolume: Int?,
     val avgLowPrice: Int?,
     val lowPriceVolume: Int?,
-)
+)

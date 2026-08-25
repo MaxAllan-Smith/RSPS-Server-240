@@ -8,39 +8,36 @@ import org.example.app.features.chat.ChatFeature
 import org.example.app.features.combat.CombatFeature
 import org.example.app.features.firemaking.FiremakingConfig
 import org.example.app.features.firemaking.FiremakingFeature
-import org.example.app.features.grounditems.GroundItemConfig
 import org.example.app.features.grounditems.GroundItemFeature
-import org.example.app.features.grounditems.GroundItemService
 import org.example.app.features.interfaces.InterfaceFeature
 import org.example.app.features.inventory.InventoryFeature
-import org.example.app.features.itemuse.ItemOnItemDispatcher
+import org.example.app.features.inventory.InventorySyncService
 import org.example.app.features.itemuse.ItemUseFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.movement.MovementConfig
 import org.example.app.features.movement.MovementFeature
 import org.example.app.features.movement.MovementService
-import org.example.app.features.movement.RoutePlanner
 import org.example.app.features.npcs.NpcFeature
 import org.example.app.features.npcs.NpcService
 import org.example.app.features.skills.SkillsFeature
 import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
-import org.example.app.features.world.WorldLocService
 
 /**
  * Application composition root for gameplay features.
+ *
+ * This is the one place concrete feature classes are allowed to be imported
+ * together and wired up. All cross-cutting core services (route planning,
+ * dynamic world locs, ground items, item-on-item dispatch) are already built
+ * by [org.example.app.core.server.ServerApplication] and arrive here through
+ * [FeatureDependencies] -- this catalog only wires the feature-owned services
+ * that sit on top of them and constructs the [Feature] list.
  */
 object FeatureCatalog {
 
     fun create(
         dependencies: FeatureDependencies,
     ): List<Feature> {
-
-        val routePlanner =
-            RoutePlanner(
-                collision =
-                    dependencies.collision,
-            )
 
         val movementConfig =
             MovementConfig(
@@ -58,7 +55,7 @@ object FeatureCatalog {
         val movement =
             MovementService(
                 planner =
-                    routePlanner,
+                    dependencies.routePlanner,
 
                 config =
                     movementConfig,
@@ -67,11 +64,8 @@ object FeatureCatalog {
         val npcs =
             NpcService(
                 planner =
-                    routePlanner,
+                    dependencies.routePlanner,
             )
-
-        val worldLocs =
-            WorldLocService()
 
         val experience =
             ExperienceService(
@@ -82,19 +76,8 @@ object FeatureCatalog {
                     ),
             )
 
-        val groundItems =
-            GroundItemService(
-                config =
-                    GroundItemConfig(
-                        despawnTicks =
-                            dependencies
-                                .config
-                                .groundItemDespawnTicks,
-                    ),
-            )
-
-        val itemOnItem =
-            ItemOnItemDispatcher()
+        val inventorySync =
+            InventorySyncService()
 
         val firemakingConfig =
             FiremakingConfig(
@@ -119,7 +102,7 @@ object FeatureCatalog {
 
             WorldBootstrapFeature(
                 worldLocs =
-                    worldLocs,
+                    dependencies.worldLocs,
             ),
 
             NpcFeature(
@@ -134,22 +117,25 @@ object FeatureCatalog {
 
             SkillsFeature(),
 
-            InventoryFeature(),
+            InventoryFeature(
+                syncService =
+                    inventorySync,
+            ),
 
             ItemUseFeature(
                 itemOnItem =
-                    itemOnItem,
+                    dependencies.itemOnItem,
             ),
 
             FiremakingFeature(
                 itemOnItem =
-                    itemOnItem,
+                    dependencies.itemOnItem,
 
                 worldLocs =
-                    worldLocs,
+                    dependencies.worldLocs,
 
                 groundItems =
-                    groundItems,
+                    dependencies.groundItems,
 
                 movement =
                     movement,
@@ -163,7 +149,7 @@ object FeatureCatalog {
 
             GroundItemFeature(
                 groundItems =
-                    groundItems,
+                    dependencies.groundItems,
 
                 movement =
                     movement,
@@ -174,7 +160,7 @@ object FeatureCatalog {
                     movement,
 
                 worldLocs =
-                    worldLocs,
+                    dependencies.worldLocs,
 
                 experience =
                     experience,
@@ -184,13 +170,12 @@ object FeatureCatalog {
                 itemDefinitions =
                     dependencies
                         .itemDefinitions,
+
+                inventorySync =
+                    inventorySync,
             ),
 
-            InterfaceFeature(
-                itemDefinitions =
-                    dependencies
-                        .itemDefinitions,
-            ),
+            InterfaceFeature(),
 
             ChatFeature(),
         )
