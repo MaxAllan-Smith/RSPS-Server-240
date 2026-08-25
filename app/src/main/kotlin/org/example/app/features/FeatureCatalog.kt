@@ -11,6 +11,7 @@ import org.example.app.features.grounditems.GroundItemFeature
 import org.example.app.features.grounditems.GroundItemService
 import org.example.app.features.interfaces.InterfaceFeature
 import org.example.app.features.inventory.InventoryFeature
+import org.example.app.features.itemuse.ItemUseFeature
 import org.example.app.features.login.LoginFeature
 import org.example.app.features.movement.MovementFeature
 import org.example.app.features.movement.MovementService
@@ -95,6 +96,8 @@ object FeatureCatalog {
             SkillsFeature(),
 
             InventoryFeature(),
+
+            ItemUseFeature(),
 
             GroundItemFeature(
                 groundItems =
