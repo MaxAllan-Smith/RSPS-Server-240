@@ -63,12 +63,6 @@ object FeatureCatalog {
                     ),
             )
 
-        /*
-         * Shared generic item-on-item interaction registry.
-         *
-         * ItemUseFeature decodes/validates protocol interactions.
-         * Gameplay features register their own recipes against this dispatcher.
-         */
         val itemOnItem =
             ItemOnItemDispatcher()
 
@@ -100,6 +94,12 @@ object FeatureCatalog {
 
                 worldLocs =
                     worldLocs,
+
+                groundItems =
+                    groundItems,
+
+                movement =
+                    movement,
 
                 experience =
                     experience,
