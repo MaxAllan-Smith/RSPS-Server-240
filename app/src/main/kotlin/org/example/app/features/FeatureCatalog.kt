@@ -23,8 +23,8 @@ import org.example.app.features.world.WorldLocService
 /**
  * Application composition root for gameplay features.
  *
- * Cross-feature services are created exactly once here and explicitly shared
- * with the vertical slices that require them.
+ * Shared services are constructed once here and injected into the vertical
+ * slices that require them.
  */
 object FeatureCatalog {
 
@@ -34,7 +34,7 @@ object FeatureCatalog {
     ): List<Feature> {
 
         /*
-         * Shared collision-aware player movement.
+         * Shared collision-aware movement.
          */
         val movement =
             MovementService(
@@ -66,10 +66,9 @@ object FeatureCatalog {
             )
 
         /*
-         * Shared transient ground-object repository.
+         * Shared transient ground-item repository.
          *
-         * 100 game ticks × 600ms = 60 seconds before an untouched dropped item
-         * is garbage-collected.
+         * 100 cycles x 600ms = approximately 60 seconds.
          */
         val groundItems =
             GroundItemService(
@@ -100,6 +99,9 @@ object FeatureCatalog {
             GroundItemFeature(
                 groundItems =
                     groundItems,
+
+                movement =
+                    movement,
             ),
 
             WoodcuttingFeature(
