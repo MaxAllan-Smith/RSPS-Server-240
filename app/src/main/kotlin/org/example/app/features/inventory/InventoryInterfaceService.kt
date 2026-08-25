@@ -6,17 +6,12 @@ import org.example.app.core.player.Player
 import org.example.app.features.inventory.state.inventoryState
 
 /**
- * Initializes the interaction permissions for the player's inventory
- * interface.
+ * Initializes interaction permissions for the player's inventory interface.
  *
- * Revision 240 separates interface interaction permissions into:
+ * Revision 240 separates:
  *
- * - events1: generic widget targeting/drag/use capabilities;
+ * - events1: generic widget use/target/drag capabilities;
  * - events2: IF_BUTTON operations 1..10.
- *
- * The previous implementation only populated events2. That allowed options
- * such as Drop/Wield to transmit, but prevented the client from presenting the
- * generic "Use" action.
  */
 internal class InventoryInterfaceService {
 
@@ -53,28 +48,24 @@ internal class InventoryInterfaceService {
                         1,
 
                 /*
-                 * Generic inventory "Use" targeting permissions.
+                 * Generic inventory interaction permissions.
                  *
-                 * These allow an inventory item to be selected with Use and
-                 * subsequently targeted at:
+                 * This permits:
                  *
-                 * - a ground item;
-                 * - an NPC;
-                 * - a world object/loc;
-                 * - another player;
-                 * - another inventory/widget item.
-                 *
-                 * WIDGET_USE_TARGET also makes inventory slots themselves
-                 * valid targets for another selected inventory item.
+                 * - Use item -> ground item;
+                 * - Use item -> NPC;
+                 * - Use item -> loc;
+                 * - Use item -> player;
+                 * - Use item -> inventory/widget item;
+                 * - items to act as use targets;
+                 * - click-hold dragging;
+                 * - inventory slots to accept dragged items.
                  */
                 events1 =
-                    INVENTORY_USE_EVENTS,
+                    INVENTORY_GENERIC_EVENTS,
 
                 /*
-                 * Ordinary inventory options.
-                 *
-                 * Bits 0..9 correspond to button operations 1..10 in
-                 * revision 240's events2 field.
+                 * Ordinary item operations 1..10.
                  */
                 events2 =
                     INVENTORY_ITEM_OPTIONS,
@@ -82,7 +73,7 @@ internal class InventoryInterfaceService {
         )
 
         println(
-            "[Inventory] Enabled item options and Use targeting for " +
+            "[Inventory] Enabled item options, Use targeting and dragging for " +
                 "'${player.username}'."
         )
     }
@@ -98,19 +89,13 @@ internal class InventoryInterfaceService {
         const val INVENTORY_CONTAINER: Int =
             0
 
-        /**
-         * Revision-240 generic widget interaction mask.
+        /*
+         * Widget click-mask capabilities.
          *
-         * Values correspond to the client's widget click-mask flags:
-         *
-         * 0x00000800 = use on ground item
-         * 0x00001000 = use on NPC
-         * 0x00002000 = use on loc/object
-         * 0x00004000 = use on player
-         * 0x00008000 = use on inventory item
-         * 0x00010000 = use widget
-         * 0x00200000 = widget can be a use target
+         * These values correspond to the OSRS client widget configuration
+         * flags used by the current inventory component.
          */
+
         const val USE_GROUND_ITEM: Int =
             0x00000800
 
@@ -129,20 +114,37 @@ internal class InventoryInterfaceService {
         const val USE_WIDGET: Int =
             0x00010000
 
+        /**
+         * Allows the widget item to be dragged.
+         */
+        const val DRAG: Int =
+            0x00020000
+
+        /**
+         * Allows another draggable widget item to be dropped onto this slot.
+         */
+        const val DRAG_ON: Int =
+            0x00100000
+
+        /**
+         * Allows the widget to act as the target of USE_WIDGET.
+         */
         const val WIDGET_USE_TARGET: Int =
             0x00200000
 
-        const val INVENTORY_USE_EVENTS: Int =
+        const val INVENTORY_GENERIC_EVENTS: Int =
             USE_GROUND_ITEM or
                 USE_NPC or
                 USE_OBJECT or
                 USE_PLAYER or
                 USE_ITEM or
                 USE_WIDGET or
+                DRAG or
+                DRAG_ON or
                 WIDGET_USE_TARGET
 
         /**
-         * Enable all ten normal inventory IF_BUTTON operations.
+         * Enable ordinary IF_BUTTON operations 1..10.
          */
         const val INVENTORY_ITEM_OPTIONS: Int =
             0x3FF

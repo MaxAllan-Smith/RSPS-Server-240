@@ -23,26 +23,29 @@ class PlayerInventory {
     operator fun get(
         slot: Int,
     ): ItemStack? {
-        require(
-            slot in items.indices
-        ) {
-            "Inventory slot $slot is outside 0..${items.lastIndex}."
-        }
+        requireValidSlot(
+            slot
+        )
 
-        return items[slot]
+        return items[
+            slot
+        ]
     }
 
     /**
      * Whether at least one ordinary inventory slot is currently empty.
      *
-     * Stack merging is not implemented yet, so adding another non-stackable
-     * item currently requires a genuinely free slot.
+     * General stack merging is not implemented yet, so adding another
+     * non-stackable item currently requires a genuinely free slot.
      */
     fun hasFreeSlot(): Boolean =
         items.any {
             it == null
         }
 
+    /**
+     * Adds an item to the first available inventory slot.
+     */
     fun add(
         item: ItemStack,
     ): Boolean {
@@ -51,11 +54,16 @@ class PlayerInventory {
                 it == null
             }
 
-        if (slot == -1) {
+        if (
+            slot ==
+            -1
+        ) {
             return false
         }
 
-        items[slot] =
+        items[
+            slot
+        ] =
             item
 
         revision++
@@ -63,26 +71,34 @@ class PlayerInventory {
         return true
     }
 
+    /**
+     * Replaces the contents of one exact slot.
+     *
+     * Returns the previous contents.
+     */
     fun set(
         slot: Int,
         item: ItemStack?,
     ): ItemStack? {
-        require(
-            slot in items.indices
-        ) {
-            "Inventory slot $slot is outside 0..${items.lastIndex}."
-        }
+        requireValidSlot(
+            slot
+        )
 
         val previous =
-            items[slot]
+            items[
+                slot
+            ]
 
         if (
-            previous == item
+            previous ==
+            item
         ) {
             return previous
         }
 
-        items[slot] =
+        items[
+            slot
+        ] =
             item
 
         revision++
@@ -90,25 +106,116 @@ class PlayerInventory {
         return previous
     }
 
+    /**
+     * Removes and returns the contents of one exact slot.
+     */
     fun clear(
         slot: Int,
     ): ItemStack? {
-        require(
-            slot in items.indices
-        ) {
-            "Inventory slot $slot is outside 0..${items.lastIndex}."
-        }
+        requireValidSlot(
+            slot
+        )
 
         val previous =
-            items[slot]
+            items[
+                slot
+            ]
                 ?: return null
 
-        items[slot] =
+        items[
+            slot
+        ] =
             null
 
         revision++
 
         return previous
+    }
+
+    /**
+     * Atomically exchanges two inventory slots.
+     *
+     * This is the primitive used by normal inventory drag/rearrangement.
+     *
+     * Examples:
+     *
+     * occupied -> occupied:
+     *
+     * A B C
+     * drag A onto C
+     * C B A
+     *
+     * occupied -> empty:
+     *
+     * A B -
+     * drag A onto -
+     * - B A
+     *
+     * Only one inventory revision is produced for the complete operation.
+     */
+    fun swap(
+        firstSlot: Int,
+        secondSlot: Int,
+    ): Boolean {
+        requireValidSlot(
+            firstSlot
+        )
+
+        requireValidSlot(
+            secondSlot
+        )
+
+        if (
+            firstSlot ==
+            secondSlot
+        ) {
+            return false
+        }
+
+        val first =
+            items[
+                firstSlot
+            ]
+
+        val second =
+            items[
+                secondSlot
+            ]
+
+        /*
+         * Swapping two empty slots is not a mutation.
+         */
+        if (
+            first == null &&
+            second == null
+        ) {
+            return false
+        }
+
+        items[
+            firstSlot
+        ] =
+            second
+
+        items[
+            secondSlot
+        ] =
+            first
+
+        revision++
+
+        return true
+    }
+
+    private fun requireValidSlot(
+        slot: Int,
+    ) {
+        require(
+            slot in
+                items.indices
+        ) {
+            "Inventory slot $slot is outside 0..${items.lastIndex}."
+        }
     }
 
     companion object {
