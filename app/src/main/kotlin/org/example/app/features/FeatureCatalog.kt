@@ -16,6 +16,7 @@ import org.example.app.features.inventory.InventoryFeature
 import org.example.app.features.itemuse.ItemOnItemDispatcher
 import org.example.app.features.itemuse.ItemUseFeature
 import org.example.app.features.login.LoginFeature
+import org.example.app.features.movement.MovementConfig
 import org.example.app.features.movement.MovementFeature
 import org.example.app.features.movement.MovementService
 import org.example.app.features.movement.RoutePlanner
@@ -34,6 +35,19 @@ object FeatureCatalog {
             FeatureDependencies,
     ): List<Feature> {
 
+        val movementConfig =
+            MovementConfig(
+                runEnergyDrainPerRunningCycle =
+                    dependencies
+                        .config
+                        .runEnergyDrainPerRunningCycle,
+
+                runEnergyRestorePerIdleCycle =
+                    dependencies
+                        .config
+                        .runEnergyRestorePerIdleCycle,
+            )
+
         val movement =
             MovementService(
                 planner =
@@ -41,6 +55,9 @@ object FeatureCatalog {
                         collision =
                             dependencies.collision,
                     ),
+
+                config =
+                    movementConfig,
             )
 
         val worldLocs =
@@ -55,9 +72,6 @@ object FeatureCatalog {
                     ),
             )
 
-        /*
-         * Ordinary drops AND Firemaking ashes inherit this global lifetime.
-         */
         val groundItems =
             GroundItemService(
                 config =

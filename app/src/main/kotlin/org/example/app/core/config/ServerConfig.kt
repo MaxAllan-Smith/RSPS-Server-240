@@ -7,9 +7,8 @@ import java.time.Instant
 /**
  * Process-level server configuration.
  *
- * Infrastructure and globally-tunable gameplay timings live here so they can
- * be changed from one composition boundary rather than being scattered through
- * gameplay features.
+ * Infrastructure and globally-tunable gameplay values live here so gameplay
+ * features do not scatter timing/rate constants throughout the codebase.
  */
 data class ServerConfig(
     val host: String,
@@ -22,25 +21,21 @@ data class ServerConfig(
     val dataDirectory: Path,
     val gameCycleMillis: Long,
 
-    /**
-     * Generic world-item lifetime.
-     *
-     * This applies to ordinary dropped items and also to ashes produced by
-     * player-made fires.
-     */
     val groundItemDespawnTicks: Int,
 
-    /**
-     * Number of game cycles between Firemaking ignition rolls.
-     */
     val firemakingRollIntervalTicks: Int,
-
-    /**
-     * Player-made fire lifetime is randomized inclusively between these two
-     * values.
-     */
     val fireLifetimeMinTicks: Int,
     val fireLifetimeMaxTicks: Int,
+
+    /**
+     * Run energy uses hundredths of one percent.
+     *
+     * 10,000 = 100%.
+     *
+     * These values are deliberately server-tunable.
+     */
+    val runEnergyDrainPerRunningCycle: Int,
+    val runEnergyRestorePerIdleCycle: Int,
 ) {
     init {
         require(
@@ -72,6 +67,18 @@ data class ServerConfig(
                 fireLifetimeMinTicks
         ) {
             "Maximum fire lifetime must be >= minimum fire lifetime."
+        }
+
+        require(
+            runEnergyDrainPerRunningCycle > 0
+        ) {
+            "Run-energy drain must be positive."
+        }
+
+        require(
+            runEnergyRestorePerIdleCycle >= 0
+        ) {
+            "Run-energy restoration must not be negative."
         }
     }
 
@@ -163,31 +170,40 @@ data class ServerConfig(
                 gameCycleMillis =
                     600L,
 
-                /*
-                 * 100 cycles x 600 ms = 60 seconds.
-                 *
-                 * Ashes use this same generic ground-item lifetime.
-                 */
                 groundItemDespawnTicks =
                     100,
 
-                /*
-                 * Four cycles = 2.4 seconds between failed ignition rolls.
-                 */
                 firemakingRollIntervalTicks =
                     4,
 
-                /*
-                 * Player-made fires now live for roughly 108-180 seconds.
-                 *
-                 * Each individual fire receives a random duration within this
-                 * range.
-                 */
                 fireLifetimeMinTicks =
                     180,
 
                 fireLifetimeMaxTicks =
                     300,
+
+                /*
+                 * Run energy uses 10,000 units for 100%.
+                 *
+                 * 25 units = 0.25% per 600ms running cycle.
+                 *
+                 * From full energy this provides roughly four minutes of
+                 * uninterrupted running, deliberately longer than standard
+                 * game behavior.
+                 */
+                runEnergyDrainPerRunningCycle =
+                    25,
+
+                /*
+                 * 15 units = 0.15% restoration per game cycle while the player
+                 * is not actually running.
+                 *
+                 * This is deliberately kept independent from the run toggle:
+                 * an enabled orb does not prevent regeneration while standing
+                 * still or walking.
+                 */
+                runEnergyRestorePerIdleCycle =
+                    15,
             )
         }
     }
