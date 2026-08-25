@@ -21,6 +21,7 @@ import org.example.app.features.movement.MovementFeature
 import org.example.app.features.movement.MovementService
 import org.example.app.features.movement.RoutePlanner
 import org.example.app.features.npcs.NpcFeature
+import org.example.app.features.npcs.NpcService
 import org.example.app.features.skills.SkillsFeature
 import org.example.app.features.woodcutting.WoodcuttingFeature
 import org.example.app.features.world.WorldBootstrapFeature
@@ -32,9 +33,14 @@ import org.example.app.features.world.WorldLocService
 object FeatureCatalog {
 
     fun create(
-        dependencies:
-            FeatureDependencies,
+        dependencies: FeatureDependencies,
     ): List<Feature> {
+
+        val routePlanner =
+            RoutePlanner(
+                collision =
+                    dependencies.collision,
+            )
 
         val movementConfig =
             MovementConfig(
@@ -52,13 +58,16 @@ object FeatureCatalog {
         val movement =
             MovementService(
                 planner =
-                    RoutePlanner(
-                        collision =
-                            dependencies.collision,
-                    ),
+                    routePlanner,
 
                 config =
                     movementConfig,
+            )
+
+        val npcs =
+            NpcService(
+                planner =
+                    routePlanner,
             )
 
         val worldLocs =
@@ -113,7 +122,10 @@ object FeatureCatalog {
                     worldLocs,
             ),
 
-            NpcFeature(),
+            NpcFeature(
+                npcs =
+                    npcs,
+            ),
 
             MovementFeature(
                 movement =

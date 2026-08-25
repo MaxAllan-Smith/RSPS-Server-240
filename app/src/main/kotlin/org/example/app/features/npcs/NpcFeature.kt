@@ -6,18 +6,17 @@ import org.example.app.core.feature.FeatureRegistrar
 /**
  * World NPC vertical slice.
  *
- * This first version is intentionally synchronization-only:
+ * Current responsibilities:
  *
  * - allocate configured NPCs;
- * - retain authoritative runtime instances;
- * - advance RSProt NPC avatar state each cycle.
+ * - retain authoritative runtime state;
+ * - perform lightweight collision-aware local wandering;
+ * - synchronize movement through RSProt NPC avatars.
  *
- * Interaction, walking, combat, death and respawning are subsequent slices.
+ * Interaction and combat remain separate subsequent slices.
  */
 internal class NpcFeature(
-    private val npcs:
-        NpcService =
-            NpcService(),
+    private val npcs: NpcService,
 ) : Feature {
 
     override val id: String =
@@ -26,13 +25,6 @@ internal class NpcFeature(
     override fun install(
         registrar: FeatureRegistrar,
     ) {
-        /*
-         * NPC avatar state must be prepared before RSProt computes entity
-         * information for the cycle.
-         *
-         * Login currently runs at -1000 and movement at 10, so this keeps NPC
-         * world state early in the cycle without interfering with either.
-         */
         registrar.onCycleStart(
             priority =
                 NPC_CYCLE_PRIORITY,
