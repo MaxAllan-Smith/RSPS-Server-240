@@ -4,6 +4,7 @@ import org.example.app.core.engine.GameContext
 import org.example.app.core.experience.ExperienceService
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
+import org.example.app.core.items.ItemStack
 import org.example.app.core.player.Player
 import org.example.app.core.player.WorldPosition
 import org.example.app.core.player.sendGameMessage
@@ -17,22 +18,27 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * Firemaking vertical slice.
+ * Standard line-Firemaking gameplay.
  *
- * Current behavior:
+ * Lifecycle:
  *
- * - Logs + Tinderbox works in either selected-item order.
- * - One log is removed from inventory and placed on the ground.
- * - The player begins the Firemaking animation.
- * - A level-scaled success roll occurs every four game ticks.
- * - Failed rolls keep the action running.
- * - Successful rolls:
- *      - remove the ground log;
- *      - create the fire;
- *      - award Firemaking XP;
- *      - stop the animation;
- *      - move the player one tile away from the new fire.
- * - Moving away manually cancels the lighting attempt.
+ * inventory log
+ *      ->
+ * ground log + animation
+ *      ->
+ * level-scaled ignition rolls
+ *      ->
+ * fire + XP
+ *      ->
+ * immediate collision-aware one-tile step
+ *      ->
+ * randomized burn lifetime
+ *      ->
+ * fire disappears
+ *      ->
+ * ashes ground item
+ *      ->
+ * ordinary ground-item garbage collection
  */
 internal class FiremakingFeature(
     private val itemOnItem:
@@ -50,6 +56,9 @@ internal class FiremakingFeature(
     private val experience:
         ExperienceService,
 
+    private val config:
+        FiremakingConfig,
+
     private val random:
         Random =
         Random.Default,
@@ -58,40 +67,87 @@ internal class FiremakingFeature(
     override val id: String =
         "firemaking"
 
+    /**
+     * Runtime fires owned by this feature.
+     *
+     * WorldLocService owns the actual scene loc and performs its LocDel at the
+     * same configured lifetime. This map lets Firemaking react to that expiry
+     * by creating ashes.
+     */
+    private val activeFires =
+        LinkedHashMap<
+            WorldPosition,
+            ActiveFire
+            >()
+
     override fun install(
         registrar: FeatureRegistrar,
     ) {
-        itemOnItem.register(
-            firstItemId =
-                LOGS_ITEM_ID,
+        registerLogInteractions()
 
-            secondItemId =
-                TINDERBOX_ITEM_ID,
-
-            handler =
-                ::startNormalLogs,
-        )
-
+        /*
+         * Runs before normal movement.
+         *
+         * When ignition succeeds, the one-tile step route is installed here.
+         * MovementFeature runs at priority 10, so the route advances in this
+         * SAME game cycle instead of waiting another 600 ms.
+         */
         registrar.onCycleStart(
             priority =
-                FIREMAKING_PRIORITY,
+                BEFORE_MOVEMENT_PRIORITY,
         ) { context ->
-            processCycle(
+            processActiveFires()
+
+            processAttempts(
+                context
+            )
+        }
+
+        /*
+         * Runs after movement.
+         *
+         * If the player manually walked away while an ignition attempt was in
+         * progress, cancel the attempt and leave their log on the ground.
+         */
+        registrar.onCycleStart(
+            priority =
+                AFTER_MOVEMENT_PRIORITY,
+        ) { context ->
+            cancelMovedAttempts(
                 context
             )
         }
     }
 
-    /**
-     * Begins lighting normal logs.
-     *
-     * The inventory log is consumed immediately into a server-authoritative
-     * ground item. It is not yet destroyed: a successful Firemaking roll
-     * converts that ground log into a fire.
-     */
-    private fun startNormalLogs(
+    private fun registerLogInteractions() {
+        for (
+            log in
+            FiremakingLog.entries
+        ) {
+            itemOnItem.register(
+                firstItemId =
+                    TINDERBOX_ITEM_ID,
+
+                secondItemId =
+                    log.itemId,
+            ) { interaction ->
+                start(
+                    interaction =
+                        interaction,
+
+                    log =
+                        log,
+                )
+            }
+        }
+    }
+
+    private fun start(
         interaction:
             ItemOnItemInteraction,
+
+        log:
+            FiremakingLog,
     ) {
         val player =
             interaction.player
@@ -99,14 +155,11 @@ internal class FiremakingFeature(
         val state =
             player.firemakingState
 
-        /*
-         * A new attempt replaces any previous active attempt.
-         */
         if (
             state.attempt !=
             null
         ) {
-            cancel(
+            cancelAttempt(
                 player =
                     player,
 
@@ -121,7 +174,7 @@ internal class FiremakingFeature(
         val logSlot =
             if (
                 interaction.selectedItemId ==
-                LOGS_ITEM_ID
+                log.itemId
             ) {
                 interaction.selectedSlot
             } else {
@@ -138,7 +191,7 @@ internal class FiremakingFeature(
                 interaction.targetSlot
             }
 
-        val logs =
+        val serverLog =
             player.inventory[
                 logSlot
             ]
@@ -148,12 +201,9 @@ internal class FiremakingFeature(
                 tinderboxSlot
             ]
 
-        /*
-         * Revalidate authoritative inventory state.
-         */
         if (
-            logs?.id !=
-            LOGS_ITEM_ID ||
+            serverLog?.id !=
+            log.itemId ||
             tinderbox?.id !=
             TINDERBOX_ITEM_ID
         ) {
@@ -167,11 +217,11 @@ internal class FiremakingFeature(
 
         if (
             level <
-            NORMAL_LOGS_REQUIRED_LEVEL
+            log.requiredLevel
         ) {
             player.sendGameMessage(
                 "You need a Firemaking level of " +
-                    "$NORMAL_LOGS_REQUIRED_LEVEL to light these logs."
+                    "${log.requiredLevel} to light these logs."
             )
 
             return
@@ -180,12 +230,6 @@ internal class FiremakingFeature(
         val position =
             player.position
 
-        /*
-         * This currently covers runtime locs such as another player-made fire.
-         *
-         * Static map-loc occupancy can be tightened separately once dynamic
-         * clipping/world-loc occupancy is unified.
-         */
         if (
             worldLocs.isOverridden(
                 position =
@@ -202,27 +246,23 @@ internal class FiremakingFeature(
             return
         }
 
-        /*
-         * Convert the inventory log into a ground log.
-         *
-         * The Tinderbox remains in the inventory.
-         */
-        val removedLogs =
+        val removed =
             player.inventory.clear(
                 logSlot
             )
                 ?: return
 
         check(
-            removedLogs.id ==
-            LOGS_ITEM_ID
+            removed.id ==
+                log.itemId
         ) {
-            "Firemaking removed an unexpected item from slot $logSlot."
+            "Firemaking removed unexpected item=${removed.id} " +
+                "from slot=$logSlot."
         }
 
         groundItems.drop(
             item =
-                removedLogs,
+                removed,
 
             position =
                 position,
@@ -239,23 +279,27 @@ internal class FiremakingFeature(
 
         state.attempt =
             FiremakingAttempt(
+                log =
+                    log,
+
                 position =
                     position,
 
                 ticksUntilRoll =
-                    LIGHTING_ROLL_INTERVAL_TICKS,
+                    config.rollIntervalTicks,
             )
 
         println(
-            "[Firemaking] '${player.username}' started lighting Logs " +
-                "at ${position.x}," +
+            "[Firemaking] '${player.username}' started lighting " +
+                "${log.displayName} at " +
+                "${position.x}," +
                 "${position.z}," +
                 "${position.level}; " +
                 "level=$level."
         )
     }
 
-    private fun processCycle(
+    private fun processAttempts(
         context: GameContext,
     ) {
         for (
@@ -268,7 +312,7 @@ internal class FiremakingFeature(
                 continue
             }
 
-            processPlayer(
+            processAttempt(
                 context =
                     context,
 
@@ -278,7 +322,7 @@ internal class FiremakingFeature(
         }
     }
 
-    private fun processPlayer(
+    private fun processAttempt(
         context: GameContext,
         player: Player,
     ) {
@@ -290,16 +334,14 @@ internal class FiremakingFeature(
                 ?: return
 
         /*
-         * Lighting happens on the tile where the logs were placed.
-         *
-         * If the player manually moves away, the attempt is interrupted and
-         * the log remains as an ordinary ground item.
+         * If movement from a previous cycle already moved us away, don't
+         * continue rolling.
          */
         if (
             player.position !=
             attempt.position
         ) {
-            cancel(
+            cancelAttempt(
                 player =
                     player,
 
@@ -313,10 +355,6 @@ internal class FiremakingFeature(
             return
         }
 
-        /*
-         * Another temporary loc may have claimed the tile while this player
-         * was still attempting to light their log.
-         */
         if (
             worldLocs.isOverridden(
                 position =
@@ -326,7 +364,7 @@ internal class FiremakingFeature(
                     FIRE_LOC_SHAPE,
             )
         ) {
-            cancel(
+            cancelAttempt(
                 player =
                     player,
 
@@ -359,9 +397,8 @@ internal class FiremakingFeature(
             )
 
         val chance =
-            normalLogsSuccessChance(
-                level =
-                    level
+            successChance(
+                level
             )
 
         val roll =
@@ -374,7 +411,8 @@ internal class FiremakingFeature(
                 chance
 
         println(
-            "[Firemaking] '${player.username}' lighting roll: " +
+            "[Firemaking] '${player.username}' lighting roll for " +
+                "${attempt.log.displayName}: " +
                 "level=$level, " +
                 "chance=$chance/$SUCCESS_CHANCE_SCALE, " +
                 "roll=$roll, " +
@@ -384,21 +422,17 @@ internal class FiremakingFeature(
         if (
             !success
         ) {
-            /*
-             * Keep the animation running and try again after another standard
-             * four-tick Firemaking attempt.
-             */
             playAnimation(
                 player
             )
 
             attempt.ticksUntilRoll =
-                LIGHTING_ROLL_INTERVAL_TICKS
+                config.rollIntervalTicks
 
             return
         }
 
-        completeFire(
+        complete(
             context =
                 context,
 
@@ -413,31 +447,26 @@ internal class FiremakingFeature(
         )
     }
 
-    private fun completeFire(
+    private fun complete(
         context: GameContext,
         player: Player,
         state: FiremakingState,
         attempt: FiremakingAttempt,
     ) {
-        /*
-         * The log must still exist on the ground.
-         *
-         * If somebody picked it up while the player was attempting to light
-         * it, no fire can be produced.
-         */
         val groundLog =
             groundItems.take(
                 itemId =
-                    LOGS_ITEM_ID,
+                    attempt.log.itemId,
 
                 position =
                     attempt.position,
             )
 
         if (
-            groundLog == null
+            groundLog ==
+            null
         ) {
-            cancel(
+            cancelAttempt(
                 player =
                     player,
 
@@ -450,6 +479,9 @@ internal class FiremakingFeature(
 
             return
         }
+
+        val lifetime =
+            randomFireLifetime()
 
         val spawned =
             worldLocs.spawnTemporary(
@@ -469,17 +501,12 @@ internal class FiremakingFeature(
                     FIRE_LOC_ROTATION,
 
                 lifetimeTicks =
-                    FIRE_LIFETIME_TICKS,
+                    lifetime,
             )
 
         if (
             !spawned
         ) {
-            /*
-             * The log has already left the ground-item repository at this
-             * point. Restore it as a ground item rather than silently deleting
-             * the player's resource.
-             */
             groundItems.drop(
                 item =
                     groundLog,
@@ -488,7 +515,7 @@ internal class FiremakingFeature(
                     attempt.position,
             )
 
-            cancel(
+            cancelAttempt(
                 player =
                     player,
 
@@ -506,6 +533,17 @@ internal class FiremakingFeature(
             return
         }
 
+        activeFires[
+            attempt.position
+        ] =
+            ActiveFire(
+                position =
+                    attempt.position,
+
+                ticksRemaining =
+                    lifetime,
+            )
+
         val xp =
             experience.award(
                 player =
@@ -515,13 +553,10 @@ internal class FiremakingFeature(
                     Skill.FIREMAKING,
 
                 baseExperienceMilli =
-                    NORMAL_LOGS_EXPERIENCE_MILLI,
+                    attempt.log
+                        .experienceMilli,
             )
 
-        /*
-         * Fire has now appeared. Stop the looping lighting animation before
-         * moving the player away.
-         */
         stopAnimation(
             player
         )
@@ -532,7 +567,11 @@ internal class FiremakingFeature(
             "The fire catches and the logs begin to burn."
         )
 
-        stepAwayFromFire(
+        /*
+         * This route is installed before MovementFeature's priority-10 cycle,
+         * allowing the first step to happen in the same game tick.
+         */
+        stepAway(
             player =
                 player,
 
@@ -541,72 +580,197 @@ internal class FiremakingFeature(
         )
 
         println(
-            "[Firemaking] '${player.username}' lit Logs " +
-                "at ${attempt.position.x}," +
+            "[Firemaking] '${player.username}' lit " +
+                "${attempt.log.displayName} at " +
+                "${attempt.position.x}," +
                 "${attempt.position.z}," +
                 "${attempt.position.level}; " +
+                "fireLifetime=$lifetime ticks, " +
                 "awardedXp=${xp.awardedExperience}."
         )
     }
 
     /**
-     * Normal-log success chance.
+     * Tracks Firemaking-owned loc expiry so an ordinary Ashes ground item can
+     * be produced when WorldLocService removes the fire.
      *
-     * The revision-current OSRS success curve begins at 65/256 at level 1 and
-     * reaches guaranteed success at level 43.
-     *
-     * Intermediate values are linearly interpolated onto the same 0..256
-     * probability scale.
+     * World loc timers run at priority 0. This feature runs at priority 5, so
+     * on the final cycle the LocDel has already been queued before the ashes
+     * are staged.
      */
-    private fun normalLogsSuccessChance(
+    private fun processActiveFires() {
+        if (
+            activeFires.isEmpty()
+        ) {
+            return
+        }
+
+        val expired =
+            ArrayList<
+                WorldPosition
+                >()
+
+        for (
+            fire in
+            activeFires.values
+        ) {
+            fire.ticksRemaining--
+
+            if (
+                fire.ticksRemaining <=
+                0
+            ) {
+                expired +=
+                    fire.position
+            }
+        }
+
+        for (
+            position in
+            expired
+        ) {
+            activeFires.remove(
+                position
+            )
+
+            groundItems.drop(
+                item =
+                    ItemStack(
+                        id =
+                            ASHES_ITEM_ID,
+
+                        amount =
+                            1,
+                    ),
+
+                position =
+                    position,
+            )
+
+            println(
+                "[Firemaking] Fire burned out at " +
+                    "${position.x}," +
+                    "${position.z}," +
+                    "${position.level}; " +
+                    "spawned ashes item=$ASHES_ITEM_ID."
+            )
+        }
+    }
+
+    private fun cancelMovedAttempts(
+        context: GameContext,
+    ) {
+        for (
+            player in
+            context.players.snapshot()
+        ) {
+            if (
+                player.isDisconnected
+            ) {
+                continue
+            }
+
+            val state =
+                player.firemakingState
+
+            val attempt =
+                state.attempt
+                    ?: continue
+
+            if (
+                player.position ==
+                attempt.position
+            ) {
+                continue
+            }
+
+            cancelAttempt(
+                player =
+                    player,
+
+                state =
+                    state,
+
+                reason =
+                    "player moved away",
+            )
+        }
+    }
+
+    /**
+     * OSRS ordinary-log ignition curve.
+     *
+     * Crowdsourced current-game behavior is believed to interpolate from
+     * 65/256 at level 1 to guaranteed success at level 43.
+     *
+     * The log's own required level is checked separately.
+     */
+    private fun successChance(
         level: Int,
     ): Int {
         if (
             level >=
-            NORMAL_LOGS_GUARANTEED_LEVEL
+            GUARANTEED_SUCCESS_LEVEL
         ) {
             return SUCCESS_CHANCE_SCALE
         }
 
-        val effectiveLevel =
+        val effective =
             level.coerceAtLeast(
-                NORMAL_LOGS_REQUIRED_LEVEL
+                1
             )
 
         val progress =
             (
-                effectiveLevel -
-                    NORMAL_LOGS_REQUIRED_LEVEL
+                effective -
+                    1
                 ).toDouble() /
                 (
-                    NORMAL_LOGS_GUARANTEED_LEVEL -
-                        NORMAL_LOGS_REQUIRED_LEVEL
+                    GUARANTEED_SUCCESS_LEVEL -
+                        1
                     ).toDouble()
 
         return (
-            NORMAL_LOGS_LEVEL_ONE_CHANCE +
+            LEVEL_ONE_SUCCESS_CHANCE +
                 (
                     SUCCESS_CHANCE_SCALE -
-                        NORMAL_LOGS_LEVEL_ONE_CHANCE
+                        LEVEL_ONE_SUCCESS_CHANCE
                     ) *
                 progress
             )
             .roundToInt()
             .coerceIn(
-                NORMAL_LOGS_LEVEL_ONE_CHANCE,
+                LEVEL_ONE_SUCCESS_CHANCE,
                 SUCCESS_CHANCE_SCALE,
             )
     }
 
+    private fun randomFireLifetime():
+        Int {
+
+        if (
+            config.fireLifetimeMinTicks ==
+            config.fireLifetimeMaxTicks
+        ) {
+            return config.fireLifetimeMinTicks
+        }
+
+        return random.nextInt(
+            from =
+                config.fireLifetimeMinTicks,
+
+            until =
+                config.fireLifetimeMaxTicks +
+                    1,
+        )
+    }
+
     /**
-     * After creating a fire OSRS attempts to step:
+     * Standard line-Firemaking step order:
      *
      * west -> east -> south -> north.
-     *
-     * MovementService performs the collision-aware route validation for each
-     * adjacent tile.
      */
-    private fun stepAwayFromFire(
+    private fun stepAway(
         player: Player,
         firePosition: WorldPosition,
     ) {
@@ -679,7 +843,8 @@ internal class FiremakingFeature(
             ) {
                 println(
                     "[Firemaking] '${player.username}' stepping away " +
-                        "from fire to ${destination.x}," +
+                        "from fire to " +
+                        "${destination.x}," +
                         "${destination.z}," +
                         "${destination.level}."
                 )
@@ -689,8 +854,8 @@ internal class FiremakingFeature(
         }
 
         println(
-            "[Firemaking] '${player.username}' could not step away from fire; " +
-                "all cardinal tiles were blocked."
+            "[Firemaking] '${player.username}' could not step away from " +
+                "fire; all cardinal tiles were blocked."
         )
     }
 
@@ -726,7 +891,7 @@ internal class FiremakingFeature(
             )
     }
 
-    private fun cancel(
+    private fun cancelAttempt(
         player: Player,
         state: FiremakingState,
         reason: String,
@@ -750,8 +915,14 @@ internal class FiremakingFeature(
     }
 
     private data class FiremakingAttempt(
+        val log: FiremakingLog,
         val position: WorldPosition,
         var ticksUntilRoll: Int,
+    )
+
+    private data class ActiveFire(
+        val position: WorldPosition,
+        var ticksRemaining: Int,
     )
 
     private class FiremakingState {
@@ -779,35 +950,11 @@ internal class FiremakingFeature(
         const val TINDERBOX_ITEM_ID: Int =
             590
 
-        const val LOGS_ITEM_ID: Int =
-            1511
-
-        const val NORMAL_LOGS_REQUIRED_LEVEL: Int =
-            1
-
         /**
-         * Normal logs are guaranteed to ignite from level 43 onward.
+         * Ordinary ashes created by player-made fires.
          */
-        const val NORMAL_LOGS_GUARANTEED_LEVEL: Int =
-            43
-
-        /**
-         * Level-one normal-log chance = 65 / 256.
-         */
-        const val NORMAL_LOGS_LEVEL_ONE_CHANCE: Int =
-            65
-
-        const val SUCCESS_CHANCE_SCALE: Int =
-            256
-
-        /**
-         * Four 600ms game cycles = 2.4 seconds between lighting rolls.
-         */
-        const val LIGHTING_ROLL_INTERVAL_TICKS: Int =
-            4
-
-        const val NORMAL_LOGS_EXPERIENCE_MILLI: Int =
-            40_000
+        const val ASHES_ITEM_ID: Int =
+            592
 
         const val FIRE_LOC_ID: Int =
             26185
@@ -818,13 +965,56 @@ internal class FiremakingFeature(
         const val FIRE_LOC_ROTATION: Int =
             0
 
-        const val FIRE_LIFETIME_TICKS: Int =
-            100
-
         const val FIREMAKING_ANIMATION_ID: Int =
             733
 
-        const val FIREMAKING_PRIORITY: Int =
+        const val SUCCESS_CHANCE_SCALE: Int =
+            256
+
+        const val LEVEL_ONE_SUCCESS_CHANCE: Int =
+            65
+
+        const val GUARANTEED_SUCCESS_LEVEL: Int =
+            43
+
+        /**
+         * Firemaking completes before MovementFeature (priority 10), allowing
+         * the automatic step-away route to advance immediately.
+         */
+        const val BEFORE_MOVEMENT_PRIORITY: Int =
+            5
+
+        /**
+         * Manual movement interruption is checked after MovementFeature.
+         */
+        const val AFTER_MOVEMENT_PRIORITY: Int =
             20
+    }
+}
+
+/**
+ * Globally-sourced runtime timing configuration for Firemaking.
+ */
+internal data class FiremakingConfig(
+    val rollIntervalTicks: Int,
+    val fireLifetimeMinTicks: Int,
+    val fireLifetimeMaxTicks: Int,
+) {
+
+    init {
+        require(
+            rollIntervalTicks >
+                0
+        )
+
+        require(
+            fireLifetimeMinTicks >
+                0
+        )
+
+        require(
+            fireLifetimeMaxTicks >=
+                fireLifetimeMinTicks
+        )
     }
 }

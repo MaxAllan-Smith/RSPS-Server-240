@@ -10,6 +10,7 @@ import org.example.app.core.config.ServerConfig
 import org.example.app.core.engine.GameContext
 import org.example.app.core.engine.GameEngine
 import org.example.app.core.feature.Feature
+import org.example.app.core.feature.FeatureDependencies
 import org.example.app.core.feature.FeatureRegistry
 import org.example.app.core.items.ItemDefinitionRepository
 import org.example.app.core.items.SqliteItemDefinitionSource
@@ -26,7 +27,6 @@ import org.example.app.core.vars.VarbitDefinitionRepository
 import org.example.app.core.world.WorldCollision
 import org.example.app.core.world.collision.PrecomputedCollisionLoader
 import org.example.app.core.world.collision.RemoteCollisionMapProvider
-import org.example.app.core.feature.FeatureDependencies
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -38,36 +38,53 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class ServerApplication(
     private val config: ServerConfig,
+
     private val featureFactory:
         (FeatureDependencies) -> List<Feature>,
 ) {
-    private val shuttingDown = AtomicBoolean(false)
-    private val shutdownLatch = CountDownLatch(1)
+
+    private val shuttingDown =
+        AtomicBoolean(
+            false
+        )
+
+    private val shutdownLatch =
+        CountDownLatch(
+            1
+        )
 
     @OptIn(
         ExperimentalUnsignedTypes::class,
         ExperimentalStdlibApi::class,
     )
     fun run() {
-        val cache = prepareCache()
-        val collision = prepareCollision()
-        val rsa = prepareRsa()
+        val cache =
+            prepareCache()
+
+        val collision =
+            prepareCollision()
+
+        val rsa =
+            prepareRsa()
 
         val database =
             SqliteDatabase(
-                file = config.databaseFile,
+                file =
+                    config.databaseFile,
             )
 
         val persistence =
             PlayerPersistenceRepository(
-                database = database,
+                database =
+                    database,
             )
 
         val itemDefinitions =
             ItemDefinitionRepository(
                 source =
                     SqliteItemDefinitionSource(
-                        database = database,
+                        database =
+                            database,
                     ),
             )
 
@@ -75,49 +92,84 @@ class ServerApplication(
             WikiItemDataWorker(
                 client =
                     WikiItemDataClient(
-                        baseUrl = WIKI_ITEM_API_BASE,
-                        userAgent = WIKI_USER_AGENT,
+                        baseUrl =
+                            WIKI_ITEM_API_BASE,
+
+                        userAgent =
+                            WIKI_USER_AGENT,
                     ),
+
                 repository =
                     WikiItemDataRepository(
-                        database = database,
+                        database =
+                            database,
                     ),
             )
 
-        val huffman = HuffmanLoader.load(cache.directory)
-        val js5 = RsProtJs5Provider.open(cache.directory)
+        val huffman =
+            HuffmanLoader.load(
+                cache.directory
+            )
+
+        val js5 =
+            RsProtJs5Provider.open(
+                cache.directory
+            )
 
         try {
             val features =
                 featureFactory(
                     FeatureDependencies(
-                        itemDefinitions = itemDefinitions,
-                        collision = collision,
+                        config =
+                            config,
+
+                        itemDefinitions =
+                            itemDefinitions,
+
+                        collision =
+                            collision,
                     )
                 )
 
             val featureRuntime =
                 FeatureRegistry()
-                    .install(features)
+                    .install(
+                        features
+                    )
 
             println(
                 "[Features] Installed: " +
-                    featureRuntime.featureIds.joinToString()
+                    featureRuntime
+                        .featureIds
+                        .joinToString()
             )
 
             val networkService =
                 RsProtNetworkFactory(
-                    config = config,
-                    rsaKey = rsa.rsProtKey,
-                    huffmanProvider = huffman,
-                    js5Provider = js5,
-                    features = featureRuntime,
-                ).build()
+                    config =
+                        config,
+
+                    rsaKey =
+                        rsa.rsProtKey,
+
+                    huffmanProvider =
+                        huffman,
+
+                    js5Provider =
+                        js5,
+
+                    features =
+                        featureRuntime,
+                )
+                    .build()
 
             val playerManager =
                 PlayerManager(
-                    networkService = networkService,
-                    persistence = persistence,
+                    networkService =
+                        networkService,
+
+                    persistence =
+                        persistence,
                 )
 
             val varbitDefinitions =
@@ -127,97 +179,182 @@ class ServerApplication(
 
             val context =
                 GameContext(
-                    networkService = networkService,
-                    players = playerManager,
-                    varbits = varbitDefinitions,
-                    persistence = persistence,
-                    itemDefinitions = itemDefinitions,
-                    collision = collision,
-                    cacheDirectory = cache.directory,
+                    networkService =
+                        networkService,
+
+                    players =
+                        playerManager,
+
+                    varbits =
+                        varbitDefinitions,
+
+                    persistence =
+                        persistence,
+
+                    itemDefinitions =
+                        itemDefinitions,
+
+                    collision =
+                        collision,
+
+                    cacheDirectory =
+                        cache.directory,
                 )
 
             val engine =
                 GameEngine(
-                    context = context,
-                    features = featureRuntime,
+                    context =
+                        context,
+
+                    features =
+                        featureRuntime,
+
                     infoSynchronizer =
                         RsProtInfoSynchronizer(
                             playerManager
                         ),
-                    cycleMillis = config.gameCycleMillis,
+
+                    cycleMillis =
+                        config.gameCycleMillis,
                 )
 
             try {
-                println("\n[Server] Starting RSProt...")
+                println(
+                    "\n[Server] Starting RSProt..."
+                )
+
                 networkService.start()
+
                 engine.start()
+
                 wikiItemDataWorker.start()
-            } catch (t: Throwable) {
-                runCatching { wikiItemDataWorker.close() }
-                runCatching { engine.close() }
-                runCatching { networkService.shutdownNow() }
+            } catch (
+                t: Throwable
+            ) {
+                runCatching {
+                    wikiItemDataWorker.close()
+                }
+
+                runCatching {
+                    engine.close()
+                }
+
+                runCatching {
+                    networkService.shutdownNow()
+                }
+
                 throw t
             }
 
             installShutdownHook(
-                gameEngine = engine,
-                networkShutdown = networkService::shutdownNow,
-                js5Provider = js5,
-                wikiItemDataWorker = wikiItemDataWorker,
+                gameEngine =
+                    engine,
+
+                networkShutdown =
+                    networkService::shutdownNow,
+
+                js5Provider =
+                    js5,
+
+                wikiItemDataWorker =
+                    wikiItemDataWorker,
             )
 
-            printOnlineSummary(cache)
-            println("\nPress Ctrl+C to stop.")
+            printOnlineSummary(
+                cache
+            )
+
+            println(
+                "\nPress Ctrl+C to stop."
+            )
+
             shutdownLatch.await()
-        } catch (t: Throwable) {
-            runCatching { wikiItemDataWorker.close() }
+        } catch (
+            t: Throwable
+        ) {
+            runCatching {
+                wikiItemDataWorker.close()
+            }
+
             js5.close()
+
             throw t
         }
     }
 
-    private fun prepareCollision(): WorldCollision {
-        val collision = WorldCollision()
+    private fun prepareCollision():
+        WorldCollision {
+
+        val collision =
+            WorldCollision()
 
         PrecomputedCollisionLoader(
             provider =
                 RemoteCollisionMapProvider(
                     file =
                         config.dataDirectory
-                            .resolve("collision")
-                            .resolve("collision-map-2026-08-13.zip"),
+                            .resolve(
+                                "collision"
+                            )
+                            .resolve(
+                                "collision-map-2026-08-13.zip"
+                            ),
                 ),
-        ).loadInto(collision)
+        )
+            .loadInto(
+                collision
+            )
 
         return collision
     }
 
-    private fun prepareCache(): PreparedCache {
+    private fun prepareCache():
+        PreparedCache {
+
         val target =
             CacheTarget(
-                major = config.protocolRevision,
-                minor = config.cacheMinorRevision,
-                windowStart = config.patchWindowStart,
-                windowEndExclusive = config.patchWindowEndExclusive,
+                major =
+                    config.protocolRevision,
+
+                minor =
+                    config.cacheMinorRevision,
+
+                windowStart =
+                    config.patchWindowStart,
+
+                windowEndExclusive =
+                    config.patchWindowEndExclusive,
             )
 
         return CacheBootstrap(
-            archiveClient = OpenRs2ArchiveClient(),
-            cacheRoot = config.cacheRootDirectory,
-            cacheDirectory = config.cacheDirectory,
-        ).prepare(target)
+            archiveClient =
+                OpenRs2ArchiveClient(),
+
+            cacheRoot =
+                config.cacheRootDirectory,
+
+            cacheDirectory =
+                config.cacheDirectory,
+        )
+            .prepare(
+                target
+            )
     }
 
     private fun prepareRsa() =
         RsaKeyManager
             .loadOrCreate(
-                privateKeyFile = config.rsaPrivateKey,
-                publicInfoFile = config.rsaPublicInfo,
+                privateKeyFile =
+                    config.rsaPrivateKey,
+
+                publicInfoFile =
+                    config.rsaPublicInfo,
             )
             .also {
                 println(
                     "\nRSA public information written to: " +
-                        config.rsaPublicInfo.toAbsolutePath()
+                        config.rsaPublicInfo
+                            .toAbsolutePath()
                 )
             }
 
@@ -227,33 +364,49 @@ class ServerApplication(
         js5Provider: RsProtJs5Provider,
         wikiItemDataWorker: WikiItemDataWorker,
     ) {
-        Runtime.getRuntime().addShutdownHook(
-            Thread(
-                {
-                    if (!shuttingDown.compareAndSet(false, true)) {
-                        return@Thread
-                    }
-
-                    println("\n[Server] Shutting down...")
-
-                    try {
-                        wikiItemDataWorker.close()
-                        gameEngine.close()
-                    } finally {
-                        js5Provider.use {
-                            networkShutdown()
+        Runtime
+            .getRuntime()
+            .addShutdownHook(
+                Thread(
+                    {
+                        if (
+                            !shuttingDown.compareAndSet(
+                                false,
+                                true,
+                            )
+                        ) {
+                            return@Thread
                         }
-                    }
 
-                    println("[Server] Shutdown complete.")
-                    shutdownLatch.countDown()
-                },
-                "server-shutdown",
+                        println(
+                            "\n[Server] Shutting down..."
+                        )
+
+                        try {
+                            wikiItemDataWorker.close()
+
+                            gameEngine.close()
+                        } finally {
+                            js5Provider.use {
+                                networkShutdown()
+                            }
+                        }
+
+                        println(
+                            "[Server] Shutdown complete."
+                        )
+
+                        shutdownLatch.countDown()
+                    },
+
+                    "server-shutdown",
+                )
             )
-        )
     }
 
-    private fun printOnlineSummary(cache: PreparedCache) {
+    private fun printOnlineSummary(
+        cache: PreparedCache,
+    ) {
         println(
             """
 
@@ -270,12 +423,15 @@ class ServerApplication(
             Database          : ${config.databaseFile.toAbsolutePath()}
             Collision         : RSMod Routefinder + pinned precomputed OSRS map
             Game cycle        : ${config.gameCycleMillis}ms
+            Ground items      : ${config.groundItemDespawnTicks} ticks
+            Fire lifetime     : ${config.fireLifetimeMinTicks}..${config.fireLifetimeMaxTicks} ticks
             ======================================
             """.trimIndent()
         )
     }
 
     private companion object {
+
         const val WIKI_ITEM_API_BASE: String =
             "https://prices.runescape.wiki/api/v1/osrs"
 

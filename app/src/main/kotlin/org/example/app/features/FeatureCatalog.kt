@@ -6,6 +6,7 @@ import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureDependencies
 import org.example.app.features.chat.ChatFeature
 import org.example.app.features.combat.CombatFeature
+import org.example.app.features.firemaking.FiremakingConfig
 import org.example.app.features.firemaking.FiremakingFeature
 import org.example.app.features.grounditems.GroundItemConfig
 import org.example.app.features.grounditems.GroundItemFeature
@@ -54,17 +55,40 @@ object FeatureCatalog {
                     ),
             )
 
+        /*
+         * Ordinary drops AND Firemaking ashes inherit this global lifetime.
+         */
         val groundItems =
             GroundItemService(
                 config =
                     GroundItemConfig(
                         despawnTicks =
-                            100,
+                            dependencies
+                                .config
+                                .groundItemDespawnTicks,
                     ),
             )
 
         val itemOnItem =
             ItemOnItemDispatcher()
+
+        val firemakingConfig =
+            FiremakingConfig(
+                rollIntervalTicks =
+                    dependencies
+                        .config
+                        .firemakingRollIntervalTicks,
+
+                fireLifetimeMinTicks =
+                    dependencies
+                        .config
+                        .fireLifetimeMinTicks,
+
+                fireLifetimeMaxTicks =
+                    dependencies
+                        .config
+                        .fireLifetimeMaxTicks,
+            )
 
         return listOf(
             LoginFeature(),
@@ -103,6 +127,9 @@ object FeatureCatalog {
 
                 experience =
                     experience,
+
+                config =
+                    firemakingConfig,
             ),
 
             GroundItemFeature(
