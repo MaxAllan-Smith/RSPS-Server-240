@@ -2,6 +2,7 @@ package org.example.app.features.grounditems
 
 import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.objs.OpObjV2
+import net.rsprot.protocol.game.outgoing.sound.SynthSound
 import org.example.app.core.feature.Feature
 import org.example.app.core.feature.FeatureRegistrar
 import org.example.app.core.inventory.PlayerInventory
@@ -196,6 +197,25 @@ internal class GroundItemFeature(
                 player.position,
         )
 
+        /*
+         * Standard OSRS inventory-item drop sound.
+         *
+         * Play only after the authoritative inventory removal and ground-item
+         * staging have both succeeded.
+         */
+        player.session.queue(
+            SynthSound(
+                id =
+                    ITEM_DROP_SOUND_ID,
+
+                loops =
+                    1,
+
+                delay =
+                    0,
+            )
+        )
+
         println(
             "[GroundItems] '${player.username}' dropped " +
                 "item=${removed.id} " +
@@ -232,22 +252,16 @@ internal class GroundItemFeature(
                     player.position.level,
             )
 
-        /*
-         * A newly-clicked ground item replaces the previous pending pickup.
-         */
         player.groundItemInteractionState
             .clear()
 
-        /*
-         * If we are already standing directly on the ground item, there is no
-         * need to calculate a movement route.
-         */
         if (
             player.position ==
             targetPosition
         ) {
             completePickup(
-                player = player,
+                player =
+                    player,
 
                 itemId =
                     packet.id,
@@ -259,14 +273,6 @@ internal class GroundItemFeature(
             return
         }
 
-        /*
-         * Ground items differ from scenery.
-         *
-         * Do NOT use requestNear here.
-         *
-         * We want the ordinary exact-destination movement request so the
-         * player's final coordinate must equal the ground item's coordinate.
-         */
         val routeAccepted =
             movement.request(
                 player =
@@ -324,11 +330,6 @@ internal class GroundItemFeature(
                 .pickup
                 ?: return
 
-        /*
-         * This is intentionally exact equality.
-         *
-         * Adjacent, diagonal, two tiles away, etc. are all insufficient.
-         */
         if (
             player.position !=
             pickup.position
@@ -339,16 +340,14 @@ internal class GroundItemFeature(
         player.groundItemInteractionState
             .clear()
 
-        /*
-         * The exact destination has been reached, so clear any residual
-         * movement state before completing the gameplay action.
-         */
         movement.clear(
-            player = player
+            player =
+                player
         )
 
         completePickup(
-            player = player,
+            player =
+                player,
 
             itemId =
                 pickup.itemId,
@@ -366,11 +365,6 @@ internal class GroundItemFeature(
         itemId: Int,
         position: WorldPosition,
     ) {
-        /*
-         * Hard requirement:
-         *
-         * the player must physically occupy the exact ground-object tile.
-         */
         if (
             player.position !=
             position
@@ -399,18 +393,6 @@ internal class GroundItemFeature(
             return
         }
 
-        /*
-         * Final existence revalidation.
-         *
-         * The ground item might have:
-         *
-         * - expired while the player was walking;
-         * - been taken by another player;
-         * - otherwise been removed.
-         *
-         * In all those cases take() returns null and nothing enters the
-         * inventory.
-         */
         val item =
             groundItems.take(
                 itemId =
@@ -439,6 +421,22 @@ internal class GroundItemFeature(
             "Inventory capacity changed unexpectedly during ground-item pickup."
         }
 
+        /*
+         * Standard OSRS item-pickup sound.
+         */
+        player.session.queue(
+            SynthSound(
+                id =
+                    ITEM_PICKUP_SOUND_ID,
+
+                loops =
+                    1,
+
+                delay =
+                    0,
+            )
+        )
+
         println(
             "[GroundItems] '${player.username}' picked up " +
                 "item=${item.id} " +
@@ -451,33 +449,33 @@ internal class GroundItemFeature(
 
     private companion object {
 
-        /**
-         * inventory:items = 149:0
-         */
         const val INVENTORY_INTERFACE_ID: Int =
             149
 
         const val INVENTORY_ITEMS_COMPONENT: Int =
             0
 
-        /**
-         * Revision-240 inventory Drop.
-         */
         const val DROP_OPERATION: Int =
             7
 
-        /**
-         * Third ground action = Take.
-         */
         const val TAKE_OPERATION: Int =
             3
+
+        /**
+         * Standard OSRS inventory-item drop sound.
+         */
+        const val ITEM_DROP_SOUND_ID: Int =
+            2739
+
+        /**
+         * Standard OSRS ground-item pickup sound.
+         */
+        const val ITEM_PICKUP_SOUND_ID: Int =
+            2582
 
         const val GROUND_ITEM_LIFECYCLE_PRIORITY: Int =
             5
 
-        /*
-         * Must run after movement processing.
-         */
         const val GROUND_ITEM_INTERACTION_PRIORITY: Int =
             20
 
@@ -486,17 +484,11 @@ internal class GroundItemFeature(
     }
 }
 
-/**
- * One pending exact-tile ground-item pickup.
- */
 private data class GroundItemPickup(
     val itemId: Int,
     val position: WorldPosition,
 )
 
-/**
- * Per-player transient ground-item interaction state.
- */
 private class GroundItemInteractionState {
 
     var pickup:
